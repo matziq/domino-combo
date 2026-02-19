@@ -676,7 +676,7 @@
         function spawnPiece() {
             // Check if any double (2-cell) placement is possible
             const canFitDouble = canPlaceDouble();
-            const dbl = canFitDouble && Math.random() < 0.5;
+            const dbl = canFitDouble && Math.random() < 5 / 6;
             piece = {
                 type: dbl ? 'double' : 'single',
                 vals: dbl ? [randVal(), randVal()] : [randVal()],
