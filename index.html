@@ -319,6 +319,87 @@
             animation: clearPulse 0.42s ease-out forwards;
         }
 
+        /* === Special 6s Clearing Effect === */
+        @keyframes explode6 {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+                filter: brightness(1);
+            }
+
+            15% {
+                transform: scale(1.35);
+                filter: brightness(2.5);
+                box-shadow: 0 0 20px #FF5252, 0 0 40px #FF8A80;
+            }
+
+            40% {
+                transform: scale(1.5);
+                opacity: 0.9;
+                filter: brightness(3);
+                box-shadow: 0 0 35px #FFAB40, 0 0 60px #FF6D00;
+            }
+
+            100% {
+                transform: scale(0);
+                opacity: 0;
+                filter: brightness(0);
+            }
+        }
+
+        .clearing-6 .die {
+            animation: explode6 0.55s ease-out forwards !important;
+        }
+
+        .clearing-6::before {
+            content: '';
+            position: absolute;
+            inset: -50%;
+            background: radial-gradient(circle, rgba(255, 82, 82, 0.6) 0%, rgba(255, 109, 0, 0.3) 40%, transparent 70%);
+            border-radius: 50%;
+            animation: flashGlow 0.5s ease-out forwards;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        @keyframes flashGlow {
+            0% {
+                transform: scale(0.3);
+                opacity: 1;
+            }
+
+            50% {
+                transform: scale(1.8);
+                opacity: 0.7;
+            }
+
+            100% {
+                transform: scale(2.5);
+                opacity: 0;
+            }
+        }
+
+        .explosion-particle {
+            position: fixed;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 900;
+            animation: particleFly 0.6s ease-out forwards;
+        }
+
+        @keyframes particleFly {
+            0% {
+                transform: translate(0, 0) scale(1);
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0;
+            }
+        }
+
         @keyframes popUp {
             0% {
                 transform: translateY(0) scale(1);
@@ -347,6 +428,12 @@
         .score-popup.combo {
             color: #FF6D00;
             font-size: 30px;
+        }
+
+        .score-popup.chain {
+            color: #FF1744;
+            font-size: 34px;
+            text-shadow: 0 0 12px rgba(255, 23, 68, 0.6), 0 2px 8px rgba(0, 0, 0, 0.7);
         }
 
         /* === Overlays === */
@@ -562,6 +649,7 @@
         let processing = false;  // lock while clearing matches
         let lastPlacedCells = [];  // track where pieces were placed for merge targeting
         let maxSpawnVal = 1;  // highest value that can appear in spawned pieces
+        let chainDepth = 0;   // tracks successive chain reactions
 
         // ── Audio (Web Audio API – no files needed) ────────────────
         let _actx = null;
@@ -578,10 +666,10 @@
                 const t = c.currentTime;
                 switch (type) {
                     case 'place':
-                        o.type = 'sine'; o.frequency.setValueAtTime(523, t);
-                        g.gain.setValueAtTime(0.07, t);
-                        g.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
-                        o.start(t); o.stop(t + 0.1); break;
+                        o.type = 'sine'; o.frequency.setValueAtTime(330, t);
+                        g.gain.setValueAtTime(0.04, t);
+                        g.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
+                        o.start(t); o.stop(t + 0.06); break;
                     case 'match':
                         o.type = 'sine'; o.frequency.setValueAtTime(659, t);
                         o.frequency.linearRampToValueAtTime(880, t + 0.18);
@@ -597,11 +685,36 @@
                         g.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
                         o.start(t); o.stop(t + 0.35); break;
                     case 'flip':
-                        o.type = 'sine'; o.frequency.setValueAtTime(440, t);
-                        o.frequency.linearRampToValueAtTime(660, t + 0.07);
-                        g.gain.setValueAtTime(0.05, t);
-                        g.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
-                        o.start(t); o.stop(t + 0.09); break;
+                        o.type = 'sine'; o.frequency.setValueAtTime(800, t);
+                        g.gain.setValueAtTime(0.03, t);
+                        g.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+                        o.start(t); o.stop(t + 0.04); break;
+                    case 'chain':
+                        o.type = 'triangle'; o.frequency.setValueAtTime(659, t);
+                        o.frequency.linearRampToValueAtTime(1047, t + 0.12);
+                        o.frequency.setValueAtTime(1175, t + 0.18);
+                        o.frequency.linearRampToValueAtTime(1397, t + 0.3);
+                        g.gain.setValueAtTime(0.13, t);
+                        g.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+                        o.start(t); o.stop(t + 0.4); break;
+                    case 'explode6':
+                        o.type = 'sawtooth'; o.frequency.setValueAtTime(880, t);
+                        o.frequency.exponentialRampToValueAtTime(110, t + 0.4);
+                        g.gain.setValueAtTime(0.12, t);
+                        g.gain.linearRampToValueAtTime(0.08, t + 0.1);
+                        g.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+                        o.start(t); o.stop(t + 0.45);
+                        // Add a second oscillator for shimmer
+                        {
+                            const o2 = c.createOscillator(), g2 = c.createGain();
+                            o2.connect(g2); g2.connect(c.destination);
+                            o2.type = 'sine'; o2.frequency.setValueAtTime(1760, t);
+                            o2.frequency.exponentialRampToValueAtTime(440, t + 0.35);
+                            g2.gain.setValueAtTime(0.06, t);
+                            g2.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+                            o2.start(t); o2.stop(t + 0.35);
+                        }
+                        break;
                     case 'over':
                         o.type = 'sawtooth'; o.frequency.setValueAtTime(440, t);
                         o.frequency.linearRampToValueAtTime(220, t + 0.5);
@@ -921,6 +1034,7 @@
                 piece = null;
                 renderPiece();
                 processing = true;
+                chainDepth = 0;
                 setTimeout(processMatches, 120);
             } else {
                 renderPiece(true);
@@ -1004,6 +1118,40 @@
             return best;
         }
 
+        // Spawn particle burst from a cell element (for 6s explosion)
+        function spawnParticles(el) {
+            const rect = el.getBoundingClientRect();
+            const cx = rect.left + rect.width / 2;
+            const cy = rect.top + rect.height / 2;
+            const colors = ['#FF5252', '#FF8A80', '#FFAB40', '#FFD600', '#FF6D00', '#FFFFFF'];
+            const count = 12;
+            for (let i = 0; i < count; i++) {
+                const p = document.createElement('div');
+                p.className = 'explosion-particle';
+                p.style.background = colors[Math.floor(Math.random() * colors.length)];
+                p.style.left = cx + 'px';
+                p.style.top = cy + 'px';
+                const angle = (Math.PI * 2 / count) * i + (Math.random() - 0.5) * 0.5;
+                const dist = 30 + Math.random() * 40;
+                const dx = Math.cos(angle) * dist;
+                const dy = Math.sin(angle) * dist;
+                const size = 3 + Math.random() * 5;
+                p.style.width = size + 'px';
+                p.style.height = size + 'px';
+                p.style.setProperty('--dx', dx + 'px');
+                p.style.setProperty('--dy', dy + 'px');
+                p.style.animation = 'none'; // reset
+                document.body.appendChild(p);
+                // Use custom translate for each particle
+                requestAnimationFrame(() => {
+                    p.style.transition = 'transform 0.5s ease-out, opacity 0.5s ease-out';
+                    p.style.transform = `translate(${dx}px, ${dy}px) scale(0)`;
+                    p.style.opacity = '0';
+                });
+                setTimeout(() => p.remove(), 600);
+            }
+        }
+
         function processMatches() {
             const groups = findGroups();
 
@@ -1013,9 +1161,11 @@
                 return;
             }
 
+            chainDepth++;
             const numSets = groups.length;
+            const isChain = chainDepth > 1;
 
-            // Points: face-value of all cleared tiles + combo bonus
+            // Points: face-value of all cleared tiles + combo/chain bonus
             let pts = 0;
             const allClear = new Set();    // cells to animate clearing
             const mergeResults = [];       // {r, c, newVal} for upgrades
@@ -1038,8 +1188,12 @@
                 // If value === 6 (red) → they just disappear
             }
 
-            const combo = numSets >= 2 ? 25 * (numSets - 1) : 0;
-            pts += combo;
+            // Bonus for multiple simultaneous groups
+            const multiBonus = numSets >= 2 ? 25 * (numSets - 1) : 0;
+            // Chain bonus: escalating multiplier for successive chain reactions
+            const chainMultiplier = isChain ? chainDepth : 1;
+            const chainBonus = isChain ? 25 * chainDepth : 0;
+            pts = (pts + multiBonus + chainBonus) * chainMultiplier;
 
             score += pts;
             if (score > highScore) {
@@ -1048,15 +1202,33 @@
             }
             updateScore();
 
-            sfx(numSets >= 2 ? 'combo' : 'match');
-            showPopup(pts, numSets >= 2 ? numSets : 0);
+            const isCombo = isChain || numSets >= 2;
+            sfx(isChain ? 'chain' : (numSets >= 2 ? 'combo' : 'match'));
+            showPopup(pts, isCombo ? (isChain ? chainDepth : numSets) : 0, isChain);
+
+            // Track which groups are 6s for special effect
+            const sixCells = new Set();
+            for (const grp of groups) {
+                if (grp.val === 6) {
+                    grp.cells.forEach(({ r, c }) => sixCells.add(r + ',' + c));
+                }
+            }
 
             // Animate clearing
             allClear.forEach(k => {
                 const [r, c] = k.split(',').map(Number);
                 const el = cellEl(r, c);
-                if (el) el.classList.add('clearing');
+                if (el) {
+                    if (sixCells.has(k)) {
+                        el.classList.add('clearing-6');
+                        spawnParticles(el);
+                    } else {
+                        el.classList.add('clearing');
+                    }
+                }
             });
+
+            if (sixCells.size > 0) sfx('explode6');
 
             setTimeout(() => {
                 // Clear all matched cells
@@ -1080,11 +1252,14 @@
             }, 420);
         }
 
-        function showPopup(pts, comboN) {
+        function showPopup(pts, comboN, isChain) {
             const brd = document.getElementById('board').getBoundingClientRect();
             const p = document.createElement('div');
-            p.className = 'score-popup' + (comboN ? ' combo' : '');
-            p.textContent = '+' + pts + (comboN ? '  COMBO ×' + comboN : '');
+            p.className = 'score-popup' + (comboN ? ' combo' : '') + (isChain ? ' chain' : '');
+            let label = '+' + pts;
+            if (isChain) label += '  CHAIN ×' + comboN;
+            else if (comboN) label += '  COMBO ×' + comboN;
+            p.textContent = label;
             p.style.left = (brd.left + brd.width / 2 - 50) + 'px';
             p.style.top = (brd.top + brd.height / 2) + 'px';
             document.body.appendChild(p);
