@@ -599,7 +599,8 @@
             <div style="font-size:14px;line-height:1.7;color:#ccc;">
                 <p style="margin-bottom:10px;"><b style="color:#29B6F6;">Drag</b> dominos onto the board.</p>
                 <p style="margin-bottom:10px;"><b style="color:#29B6F6;">Tap</b> a domino to rotate it.</p>
-                <p style="margin-bottom:10px;">Match <b style="color:#29B6F6;">3+</b> same tiles to merge them into the next value.</p>
+                <p style="margin-bottom:10px;">Match <b style="color:#29B6F6;">3+</b> same tiles to merge them into the
+                    next value.</p>
                 <p style="margin-bottom:10px;">Chain reactions earn <b style="color:#FF6D00;">bonus points</b>!</p>
                 <p style="margin-bottom:10px;">Red <b style="color:#EF5350;">6s</b> explode and vanish when matched.</p>
                 <p style="margin-bottom:0;">Game ends when no moves remain.</p>
@@ -878,7 +879,7 @@
             const area = document.getElementById('piece-area');
             area.innerHTML = '';
             const hint = document.getElementById('flip-hint');
-            hint.textContent = '';
+            hint.textContent = '\u00A0';
             if (!piece) return;
 
             const box = document.createElement('div');
