@@ -795,7 +795,7 @@
             // Check if any double (2-cell) placement is possible
             const canFitDouble = canPlaceDouble();
             // Only allow doubles when there are at least 2 distinct values available
-            const dbl = canFitDouble && maxSpawnVal >= 2 && Math.random() < 4 / 5;
+            const dbl = canFitDouble && maxSpawnVal >= 2 && Math.random() < 6 / 7;
             const firstVal = randVal();
             piece = {
                 type: dbl ? 'double' : 'single',
