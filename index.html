@@ -558,6 +558,7 @@
     <div id="game">
         <div id="score-display">0</div>
         <div id="high-score">Best: 0</div>
+        <div id="high-score-name" style="font-size:11px;color:#666;margin-bottom:4px;"></div>
         <div id="board"></div>
         <div id="piece-area"></div>
         <div id="flip-hint"></div>
@@ -578,7 +579,14 @@
         <div class="final-score-label">Score</div>
         <div class="final-score" id="final-score">0</div>
         <div class="hs-label" id="go-hs"></div>
-        <button class="overlay-btn" onclick="newGame()">Play Again</button>
+        <div id="name-entry" style="display:none;margin:10px 0;text-align:center;">
+            <div style="font-size:14px;color:#FFD600;margin-bottom:8px;">Enter your name:</div>
+            <input id="hs-name" type="text" maxlength="6" autocomplete="off" spellcheck="false" style="width:140px;padding:8px 12px;font-size:20px;font-weight:bold;text-align:center;
+                background:#222;color:#fff;border:2px solid #29B6F6;border-radius:8px;outline:none;
+                text-transform:uppercase;letter-spacing:2px;font-family:inherit;" placeholder="______">
+            <div style="font-size:11px;color:#555;margin-top:4px;">Up to 6 letters</div>
+        </div>
+        <button class="overlay-btn" onclick="submitHighScore()">Play Again</button>
     </div>
 
     <div id="settings-modal" class="overlay">
@@ -643,7 +651,26 @@
 
         let board = [];
         let score = 0;
-        let highScore = parseInt(localStorage.getItem('dcHighScore') || '0');
+        // Per-config high scores: keyed by "gridSize_matchCount"
+        // Each entry: { score: number, name: string }
+        let allHighScores = JSON.parse(localStorage.getItem('dcHighScores') || '{}');
+        // Clear legacy single high score
+        localStorage.removeItem('dcHighScore');
+
+        function hsKey() { return gridSize + '_' + matchCount; }
+        function getHighScore() {
+            const entry = allHighScores[hsKey()];
+            return entry ? entry.score : 0;
+        }
+        function getHighScoreName() {
+            const entry = allHighScores[hsKey()];
+            return entry ? entry.name : '';
+        }
+        function setHighScore(s, name) {
+            allHighScores[hsKey()] = { score: s, name: name || '' };
+            localStorage.setItem('dcHighScores', JSON.stringify(allHighScores));
+        }
+        let highScore = 0;
         let piece = null;   // current piece to place
         let drag = null;   // active drag state
         let processing = false;  // lock while clearing matches
@@ -730,6 +757,7 @@
             score = 0;
             processing = false;
             maxSpawnVal = 3;
+            highScore = getHighScore();
             board = Array.from({ length: gridSize }, () => Array(gridSize).fill(null));
             updateScore();
             renderBoard();
@@ -780,7 +808,9 @@
 
         function updateScore() {
             document.getElementById('score-display').textContent = score;
+            const hsName = getHighScoreName();
             document.getElementById('high-score').textContent = 'Best: ' + highScore;
+            document.getElementById('high-score-name').textContent = hsName ? hsName : '';
         }
 
         // ── Piece ──────────────────────────────────────────────────
@@ -1198,7 +1228,6 @@
             score += pts;
             if (score > highScore) {
                 highScore = score;
-                localStorage.setItem('dcHighScore', String(highScore));
             }
             updateScore();
 
@@ -1271,15 +1300,40 @@
             sfx('over');
             document.getElementById('final-score').textContent = score;
             const hs = document.getElementById('go-hs');
-            hs.textContent = score >= highScore ? '\u{1F3C6} New High Score!' : 'Best: ' + highScore;
+            const isNewHigh = score > 0 && score >= highScore && score > getHighScore();
+            const nameEntry = document.getElementById('name-entry');
+            const nameInput = document.getElementById('hs-name');
+            if (isNewHigh) {
+                hs.textContent = '\u{1F3C6} New High Score!';
+                nameEntry.style.display = 'block';
+                nameInput.value = '';
+                setTimeout(() => nameInput.focus(), 100);
+            } else {
+                hs.textContent = 'Best: ' + getHighScore() + (getHighScoreName() ? ' (' + getHighScoreName() + ')' : '');
+                nameEntry.style.display = 'none';
+            }
             document.getElementById('game-over').classList.add('show');
             processing = false;
+        }
+
+        function submitHighScore() {
+            const nameEntry = document.getElementById('name-entry');
+            const nameInput = document.getElementById('hs-name');
+            if (nameEntry.style.display !== 'none') {
+                const name = nameInput.value.replace(/[^a-zA-Z]/g, '').substring(0, 6).toUpperCase();
+                if (score > getHighScore()) {
+                    setHighScore(score, name);
+                    highScore = score;
+                }
+            }
+            newGame();
         }
 
         // ── Controls ───────────────────────────────────────────────
         function newGame() {
             document.getElementById('game-over').classList.remove('show');
             document.getElementById('settings-modal').classList.remove('show');
+            document.getElementById('name-entry').style.display = 'none';
             init();
         }
 
