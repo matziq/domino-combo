@@ -1245,20 +1245,25 @@
 
             // Bonus for multiple simultaneous groups
             const multiBonus = numSets >= 2 ? 25 * (numSets - 1) : 0;
-            // Chain bonus: escalating multiplier for successive chain reactions
-            const chainMultiplier = isChain ? chainDepth : 1;
-            const chainBonus = isChain ? 25 * chainDepth : 0;
-            pts = (pts + multiBonus + chainBonus) * chainMultiplier;
+            const basePts = pts + multiBonus;
+            // Chain bonus: escalating for successive chain reactions
+            const chainBonus = isChain ? 25 * (chainDepth - 1) : 0;
+            const totalPts = basePts + chainBonus;
 
-            score += pts;
+            score += totalPts;
             if (score > highScore) {
                 highScore = score;
             }
             updateScore();
 
-            const isCombo = isChain || numSets >= 2;
-            sfx(isChain ? 'chain' : (numSets >= 2 ? 'combo' : 'match'));
-            showPopup(pts, isCombo ? (isChain ? chainDepth : numSets) : 0, isChain);
+            const isCombo = numSets >= 2;
+            sfx(isChain ? 'chain' : (isCombo ? 'combo' : 'match'));
+            // Show base tile points
+            showPopup(basePts, isCombo ? numSets : 0, false);
+            // Show chain bonus as separate floating number
+            if (chainBonus > 0) {
+                setTimeout(() => showPopup(chainBonus, chainDepth, true, 40), 350);
+            }
 
             // Track which groups are 6s for special effect
             const sixCells = new Set();
@@ -1306,7 +1311,7 @@
             }, 420);
         }
 
-        function showPopup(pts, comboN, isChain) {
+        function showPopup(pts, comboN, isChain, offsetY) {
             const brd = document.getElementById('board').getBoundingClientRect();
             const p = document.createElement('div');
             p.className = 'score-popup' + (comboN ? ' combo' : '') + (isChain ? ' chain' : '');
@@ -1315,7 +1320,7 @@
             else if (comboN) label += '  COMBO ×' + comboN;
             p.textContent = label;
             p.style.left = (brd.left + brd.width / 2 - 50) + 'px';
-            p.style.top = (brd.top + brd.height / 2) + 'px';
+            p.style.top = (brd.top + brd.height / 2 + (offsetY || 0)) + 'px';
             document.body.appendChild(p);
             setTimeout(() => p.remove(), 950);
         }
