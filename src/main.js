@@ -650,6 +650,44 @@ function applySettings() {
   init();
 }
 
+// ── Immersive mode (full screen + portrait lock) ────────────
+// Both the Fullscreen API and Screen Orientation API require an active
+// user gesture on most browsers (notably Chrome for Android), so we
+// request them on tap/click rather than on page load.
+function requestImmersiveMode() {
+  const root = document.documentElement;
+  if (root.requestFullscreen && !document.fullscreenElement) {
+    root.requestFullscreen().catch(() => {
+      /* ignored: not user-initiated, unsupported, or already denied */
+    });
+  }
+  if (screen.orientation && screen.orientation.lock) {
+    screen.orientation.lock('portrait').catch(() => {
+      /* ignored: only Chrome for Android grants this, and only while
+         the page is fullscreen; other browsers fall back to the
+         #rotate-overlay CSS prompt defined in index.html */
+    });
+  }
+}
+
+function enableImmersiveMode() {
+  const armListener = () => {
+    document.addEventListener('pointerdown', requestImmersiveMode, { once: true });
+  };
+
+  // Attempt on the very first user interaction (required for the
+  // Fullscreen/Orientation APIs to be allowed).
+  armListener();
+
+  // Android exits fullscreen when the tab is backgrounded; re-arm so the
+  // next tap re-requests it once the game becomes visible again.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && !document.fullscreenElement) {
+      armListener();
+    }
+  });
+}
+
 // ── Event wiring (unobtrusive, replaces inline onclick) ────
 function wireControls() {
   document.getElementById('btn-new-game').addEventListener('click', newGame);
@@ -671,4 +709,5 @@ function wireControls() {
 
 // ── Start ──────────────────────────────────────────────────
 wireControls();
+enableImmersiveMode();
 init();

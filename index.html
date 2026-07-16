@@ -3,10 +3,16 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta name="theme-color" content="#000000">
+    <meta name="screen-orientation" content="portrait">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="icon.svg">
     <title>Domino Combo</title>
     <style>
         /* === Reset === */
@@ -40,7 +46,7 @@
             width: 100%;
             height: 100%;
             margin: 0 auto;
-            padding: 10px 12px;
+            padding: calc(10px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
         }
 
         /* === Score === */
@@ -555,10 +561,45 @@
             overflow: hidden;
             text-align: center;
         }
+
+        /* === Rotate-device fallback ===
+           Shown only on touch/mobile devices turned sideways, in case the
+           Fullscreen + Screen Orientation APIs aren't available/permitted.
+           Keeps the game locked to a portrait experience either way. */
+        #rotate-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 999;
+            background: #000;
+            color: #fff;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 24px;
+            font-size: 16px;
+        }
+
+        #rotate-overlay .rotate-icon {
+            font-size: 48px;
+            margin-bottom: 14px;
+        }
+
+        @media (orientation: landscape) and (pointer: coarse) {
+            #rotate-overlay {
+                display: flex;
+            }
+        }
     </style>
 </head>
 
 <body>
+
+    <div id="rotate-overlay">
+        <div class="rotate-icon">&#8635;</div>
+        <div>Please rotate your device back to portrait to play.</div>
+    </div>
 
     <div id="game">
         <div id="score-display">0</div>
