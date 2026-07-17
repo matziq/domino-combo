@@ -594,6 +594,7 @@ function processMatches() {
       board = collapsed;
       lastPlacedCells = []; // no player-placed cell to prefer after a collapse
       sfx('collapse');
+      screenShake();
       renderBoard(null, moved.map((m) => ({ r: m.r1, c: m.c1 })));
     } else {
       renderBoard(null, newPlaced);
@@ -601,6 +602,18 @@ function processMatches() {
 
     setTimeout(processMatches, 250); // chain reaction
   }, 420);
+}
+
+// Brief screen shake, used when a Chaos-mode collapse happens.
+function screenShake() {
+  const el = document.getElementById('game');
+  if (!el) return;
+  el.classList.remove('shake');
+  // Force reflow so the animation restarts if triggered again quickly
+  // (e.g. back-to-back chain-reaction collapses).
+  void el.offsetWidth;
+  el.classList.add('shake');
+  setTimeout(() => el.classList.remove('shake'), 400);
 }
 
 function showPopup(pts, comboN, isChain, offsetY) {
