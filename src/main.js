@@ -14,6 +14,8 @@ import {
   visualVals,
   findGroups,
   pickMergeTarget,
+  triggersCollapse,
+  collapseColumns,
   computeScore,
   sanitizeName,
   randVal,
@@ -23,6 +25,7 @@ import {
 // ── State ──────────────────────────────────────────────────
 let gridSize = 5;
 let matchCount = 3;
+let gameMode = 'classic'; // 'classic' | 'chaos'
 let soundOn = true;
 
 let board = [];
@@ -34,15 +37,15 @@ let allHighScores = JSON.parse(localStorage.getItem('dcHighScores') || '{}');
 localStorage.removeItem('dcHighScore');
 
 function getHighScore() {
-  const entry = allHighScores[hsKey(gridSize, matchCount)];
+  const entry = allHighScores[hsKey(gridSize, matchCount, gameMode)];
   return entry ? entry.score : 0;
 }
 function getHighScoreName() {
-  const entry = allHighScores[hsKey(gridSize, matchCount)];
+  const entry = allHighScores[hsKey(gridSize, matchCount, gameMode)];
   return entry ? entry.name : '';
 }
 function setHighScore(s, name) {
-  allHighScores[hsKey(gridSize, matchCount)] = { score: s, name: name || '' };
+  allHighScores[hsKey(gridSize, matchCount, gameMode)] = { score: s, name: name || '' };
   localStorage.setItem('dcHighScores', JSON.stringify(allHighScores));
 }
 
@@ -142,6 +145,15 @@ function sfx(type) {
           o2.stop(t + 0.35);
         }
         break;
+      case 'collapse':
+        o.type = 'sine';
+        o.frequency.setValueAtTime(700, t);
+        o.frequency.exponentialRampToValueAtTime(140, t + 0.3);
+        g.gain.setValueAtTime(0.1, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.32);
+        o.start(t);
+        o.stop(t + 0.32);
+        break;
       case 'over':
         o.type = 'sawtooth';
         o.frequency.setValueAtTime(440, t);
@@ -167,6 +179,7 @@ function init() {
   highScore = getHighScore();
   board = createBoard(gridSize);
   updateScore();
+  updateModeDisplay();
   renderBoard();
   spawnPiece();
 }
@@ -218,6 +231,12 @@ function updateScore() {
   const hsName = getHighScoreName();
   document.getElementById('high-score').textContent = 'Best: ' + highScore;
   document.getElementById('high-score-name').textContent = hsName || '';
+}
+
+function updateModeDisplay() {
+  const el = document.getElementById('mode-display');
+  if (!el) return;
+  el.textContent = gameMode === 'chaos' ? '\u{1F300} Chaos' : '';
 }
 
 // ── Piece ──────────────────────────────────────────────────
@@ -566,7 +585,20 @@ function processMatches() {
     // Update trigger cells for next chain reaction
     lastPlacedCells = newPlaced;
 
-    renderBoard(null, newPlaced);
+    // Chaos mode: a big enough match (4+ tiles) collapses the whole board,
+    // letting remaining tiles fall and fill the gaps. This can shuffle
+    // previously-separated tiles into adjacency, cascading into more combos
+    // on the next chain-reaction pass below.
+    if (gameMode === 'chaos' && triggersCollapse(groups)) {
+      const { board: collapsed, moved } = collapseColumns(board, gridSize);
+      board = collapsed;
+      lastPlacedCells = []; // no player-placed cell to prefer after a collapse
+      sfx('collapse');
+      renderBoard(null, moved.map((m) => ({ r: m.r1, c: m.c1 })));
+    } else {
+      renderBoard(null, newPlaced);
+    }
+
     setTimeout(processMatches, 250); // chain reaction
   }, 420);
 }
@@ -639,12 +671,14 @@ function toggleSettings() {
   m.classList.toggle('show');
   document.getElementById('opt-size').value = String(gridSize);
   document.getElementById('opt-match').value = String(matchCount);
+  document.getElementById('opt-mode').value = gameMode;
   document.getElementById('opt-sound').value = soundOn ? '1' : '0';
 }
 
 function applySettings() {
   gridSize = parseInt(document.getElementById('opt-size').value, 10);
   matchCount = parseInt(document.getElementById('opt-match').value, 10);
+  gameMode = document.getElementById('opt-mode').value;
   soundOn = document.getElementById('opt-sound').value === '1';
   document.getElementById('settings-modal').classList.remove('show');
   init();

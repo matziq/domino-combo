@@ -605,6 +605,7 @@
         <div id="score-display">0</div>
         <div id="high-score">Best: 0</div>
         <div id="high-score-name" style="font-size:11px;color:#666;margin-bottom:4px;"></div>
+        <div id="mode-display" style="font-size:12px;color:#FF8A65;font-weight:bold;margin-bottom:4px;"></div>
         <div id="board"></div>
         <div id="piece-area"></div>
         <div id="flip-hint"></div>
@@ -649,6 +650,9 @@
                     next value.</p>
                 <p style="margin-bottom:10px;">Chain reactions earn <b style="color:#FF6D00;">bonus points</b>!</p>
                 <p style="margin-bottom:10px;">Red <b style="color:#EF5350;">6s</b> explode and vanish when matched.</p>
+                <p style="margin-bottom:10px;"><b style="color:#FF8A65;">Chaos mode:</b> matches of 4+ tiles
+                    collapse the whole board, letting tiles fall to fill the gaps &mdash; this can cascade into
+                    more combos!</p>
                 <p style="margin-bottom:0;">Game ends when no moves remain.</p>
             </div>
             <button class="close-settings" id="btn-help-close" style="margin-top:14px;">Got It</button>
@@ -672,6 +676,13 @@
                     <option value="2">2 (Easy)</option>
                     <option value="3" selected>3 (Normal)</option>
                     <option value="4">4 (Hard)</option>
+                </select>
+            </div>
+            <div class="setting-row">
+                <span>Game Mode</span>
+                <select id="opt-mode">
+                    <option value="classic" selected>Classic</option>
+                    <option value="chaos">Chaos</option>
                 </select>
             </div>
             <div class="setting-row">

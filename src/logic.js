@@ -27,10 +27,17 @@ export function createBoard(gridSize) {
   return Array.from({ length: gridSize }, () => Array(gridSize).fill(null));
 }
 
-// Key used to store per-config high scores.
-export function hsKey(gridSize, matchCount) {
-  return `${gridSize}_${matchCount}`;
+// Key used to store per-config high scores. `mode` defaults to the
+// original 'classic' format so previously-saved scores keep working.
+export function hsKey(gridSize, matchCount, mode = 'classic') {
+  return mode === 'classic'
+    ? `${gridSize}_${matchCount}`
+    : `${gridSize}_${matchCount}_${mode}`;
 }
+
+// Chaos mode: a matched group of this size or larger triggers a full-board
+// gravity collapse, which can cascade into further combos.
+export const CHAOS_MATCH_THRESHOLD = 4;
 
 // Board cells a piece would occupy if anchored at (r, c).
 export function cellsFor(r, c, piece) {
@@ -175,6 +182,37 @@ export function pickMergeTarget(group, lastPlacedCells) {
     }
   }
   return best;
+}
+
+// True if any matched group is large enough to trigger a Chaos collapse.
+export function triggersCollapse(groups, threshold = CHAOS_MATCH_THRESHOLD) {
+  return groups.some((g) => g.cells.length >= threshold);
+}
+
+// Chaos mode: apply gravity to every column, letting remaining tiles fall
+// down to fill the empty cells left behind by a clear. Returns a fresh
+// board plus the list of tiles that moved (for animation), leaving the
+// input board untouched.
+export function collapseColumns(board, gridSize) {
+  const newBoard = createBoard(gridSize);
+  const moved = [];
+
+  for (let c = 0; c < gridSize; c++) {
+    const vals = [];
+    for (let r = 0; r < gridSize; r++) {
+      if (board[r][c] !== null) vals.push({ r, val: board[r][c] });
+    }
+    const offset = gridSize - vals.length;
+    vals.forEach((entry, i) => {
+      const newR = offset + i;
+      newBoard[newR][c] = entry.val;
+      if (newR !== entry.r) {
+        moved.push({ r0: entry.r, c0: c, r1: newR, c1: c, val: entry.val });
+      }
+    });
+  }
+
+  return { board: newBoard, moved };
 }
 
 // Score a set of cleared groups. `chainDepth` starts at 1 for the first

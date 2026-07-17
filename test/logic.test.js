@@ -12,6 +12,9 @@ import {
   visualVals,
   findGroups,
   pickMergeTarget,
+  triggersCollapse,
+  collapseColumns,
+  CHAOS_MATCH_THRESHOLD,
   computeScore,
   sanitizeName,
   randVal,
@@ -46,6 +49,14 @@ describe('hsKey', () => {
   it('combines grid size and match count', () => {
     expect(hsKey(5, 3)).toBe('5_3');
     expect(hsKey(7, 2)).toBe('7_2');
+  });
+
+  it('uses the classic format when mode is omitted or "classic"', () => {
+    expect(hsKey(5, 3, 'classic')).toBe('5_3');
+  });
+
+  it('appends the mode suffix for non-classic modes', () => {
+    expect(hsKey(5, 3, 'chaos')).toBe('5_3_chaos');
   });
 });
 
@@ -252,6 +263,68 @@ describe('pickMergeTarget', () => {
 
   it('falls back to center-most with an empty last-placed list', () => {
     expect(pickMergeTarget(group, [])).toEqual({ r: 0, c: 1 });
+  });
+});
+
+describe('triggersCollapse', () => {
+  it('returns false when no group reaches the threshold', () => {
+    const groups = [{ val: 1, cells: [{ r: 0, c: 0 }, { r: 0, c: 1 }, { r: 0, c: 2 }] }];
+    expect(triggersCollapse(groups)).toBe(false);
+  });
+
+  it('returns true when a group has CHAOS_MATCH_THRESHOLD or more cells', () => {
+    const cells = Array.from({ length: CHAOS_MATCH_THRESHOLD }, (_, i) => ({ r: 0, c: i }));
+    const groups = [{ val: 1, cells }];
+    expect(triggersCollapse(groups)).toBe(true);
+  });
+
+  it('respects a custom threshold', () => {
+    const groups = [{ val: 1, cells: [{ r: 0, c: 0 }, { r: 0, c: 1 }] }];
+    expect(triggersCollapse(groups, 2)).toBe(true);
+    expect(triggersCollapse(groups, 3)).toBe(false);
+  });
+});
+
+describe('collapseColumns', () => {
+  it('drops tiles to the bottom of each column, preserving order', () => {
+    const board = createBoard(3);
+    board[0][0] = 1;
+    board[1][0] = 2;
+    // column 0: [1, 2, null] -> should become [null, 1, 2]
+    const { board: out } = collapseColumns(board, 3);
+    expect(out[0][0]).toBeNull();
+    expect(out[1][0]).toBe(1);
+    expect(out[2][0]).toBe(2);
+  });
+
+  it('leaves an already-settled column unchanged', () => {
+    const board = createBoard(3);
+    board[2][1] = 5;
+    const { board: out, moved } = collapseColumns(board, 3);
+    expect(out[2][1]).toBe(5);
+    expect(moved).toHaveLength(0);
+  });
+
+  it('reports every tile that moved', () => {
+    const board = createBoard(2);
+    board[0][0] = 3;
+    const { moved } = collapseColumns(board, 2);
+    expect(moved).toEqual([{ r0: 0, c0: 0, r1: 1, c1: 0, val: 3 }]);
+  });
+
+  it('does not mutate the input board', () => {
+    const board = createBoard(3);
+    board[0][0] = 4;
+    collapseColumns(board, 3);
+    expect(board[0][0]).toBe(4);
+    expect(board[2][0]).toBeNull();
+  });
+
+  it('handles an empty board without error', () => {
+    const board = createBoard(4);
+    const { board: out, moved } = collapseColumns(board, 4);
+    expect(out.flat().every((c) => c === null)).toBe(true);
+    expect(moved).toHaveLength(0);
   });
 });
 

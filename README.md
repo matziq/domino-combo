@@ -3,6 +3,12 @@
 A match-3 dice placement game. Drag dominoes onto the board, match 3+ same tiles
 to merge them into the next value, and chain reactions for bonus points.
 
+Two game modes (pick one in **Settings**):
+
+- **Classic** — merges resolve in place; no board-wide reshuffling.
+- **Chaos** — matching 4+ tiles collapses the whole board (tiles fall to fill
+  the gaps), which can cascade into further combos.
+
 ## Play
 
 - **Quick play:** run `npm run build` and open `dist/index.html` — it's a single,
