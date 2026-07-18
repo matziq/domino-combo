@@ -16,6 +16,7 @@ import {
   pickMergeTarget,
   triggersCollapse,
   collapseColumns,
+  CHAOS_MATCH_THRESHOLD,
   computeScore,
   sanitizeName,
   randVal,
@@ -25,7 +26,7 @@ import {
 // ── State ──────────────────────────────────────────────────
 let gridSize = 5;
 let matchCount = 3;
-let gameMode = 'classic'; // 'classic' | 'chaos'
+let gameMode = 'classic'; // 'classic' | 'chaos' | 'ultra'
 let soundOn = true;
 
 let board = [];
@@ -56,6 +57,8 @@ let processing = false; // lock while clearing matches
 let lastPlacedCells = []; // track where pieces were placed for merge targeting
 let maxSpawnVal = 1; // highest value that can appear in spawned pieces
 let chainDepth = 0; // tracks successive chain reactions
+let hasCollapsedInChain = false; // Ultra Chaos: true once a collapse has fired
+// during the current placement's chain, lowering the bar for further ones
 
 // ── Audio (Web Audio API – no files needed) ────────────────
 let _actx = null;
@@ -236,7 +239,12 @@ function updateScore() {
 function updateModeDisplay() {
   const el = document.getElementById('mode-display');
   if (!el) return;
-  el.textContent = gameMode === 'chaos' ? '\u{1F300} Chaos' : '';
+  el.textContent =
+    gameMode === 'chaos'
+      ? '\u{1F300} Chaos'
+      : gameMode === 'ultra'
+        ? '\u{1F300} Ultra Chaos'
+        : '';
 }
 
 // ── Piece ──────────────────────────────────────────────────
@@ -426,6 +434,7 @@ function ptrUp(e) {
     renderPiece();
     processing = true;
     chainDepth = 0;
+    hasCollapsedInChain = false;
     setTimeout(processMatches, 120);
   } else {
     renderPiece(true);
@@ -500,6 +509,7 @@ function processMatches() {
 
   if (groups.length === 0) {
     processing = false;
+    hasCollapsedInChain = false;
     spawnPiece();
     return;
   }
@@ -589,10 +599,22 @@ function processMatches() {
     // letting remaining tiles fall and fill the gaps. This can shuffle
     // previously-separated tiles into adjacency, cascading into more combos
     // on the next chain-reaction pass below.
-    if (gameMode === 'chaos' && triggersCollapse(groups)) {
+    //
+    // Ultra Chaos: same idea, but once the first 4+ collapse has fired for
+    // this placement, the bar drops to the normal match size (matchCount)
+    // for every subsequent collapse — so the cascade keeps collapsing the
+    // board as long as ANY match keeps forming, not just big ones.
+    const collapseThreshold =
+      gameMode === 'ultra' && hasCollapsedInChain ? matchCount : CHAOS_MATCH_THRESHOLD;
+    const shouldCollapse =
+      (gameMode === 'chaos' || gameMode === 'ultra') &&
+      triggersCollapse(groups, collapseThreshold);
+
+    if (shouldCollapse) {
       const { board: collapsed, moved } = collapseColumns(board, gridSize);
       board = collapsed;
       lastPlacedCells = []; // no player-placed cell to prefer after a collapse
+      hasCollapsedInChain = true;
       sfx('collapse');
       screenShake();
       renderBoard(null, moved.map((m) => ({ r: m.r1, c: m.c1 })));

@@ -50,4 +50,11 @@ describe('game bootstrap (jsdom)', () => {
     document.getElementById('btn-apply-settings').click();
     expect(document.querySelectorAll('#board .cell')).toHaveLength(49);
   });
+
+  it('shows the Ultra Chaos mode badge once selected in settings', async () => {
+    await import('../src/main.js');
+    document.getElementById('opt-mode').value = 'ultra';
+    document.getElementById('btn-apply-settings').click();
+    expect(document.getElementById('mode-display').textContent).toContain('Ultra Chaos');
+  });
 });

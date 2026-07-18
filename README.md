@@ -3,11 +3,14 @@
 A match-3 dice placement game. Drag dominoes onto the board, match 3+ same tiles
 to merge them into the next value, and chain reactions for bonus points.
 
-Two game modes (pick one in **Settings**):
+Three game modes (pick one in **Settings**):
 
 - **Classic** — merges resolve in place; no board-wide reshuffling.
 - **Chaos** — matching 4+ tiles collapses the whole board (tiles fall to fill
   the gaps), which can cascade into further combos.
+- **Ultra Chaos** — same trigger as Chaos, but once a collapse starts, any
+  match of 3+ keeps collapsing the board again and again until nothing
+  matches anymore.
 
 ## Play
 
