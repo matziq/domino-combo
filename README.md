@@ -18,6 +18,10 @@ Three game modes (pick one in **Settings**):
   self-contained file (all CSS/JS inlined), so it works by double-clicking.
 - **Dev server:** `npm run dev` and open the printed URL (module-based, with HMR).
 
+Do not double-click the root `index.html`; it is the source entry point and
+requires Vite to serve its JavaScript modules. For offline play, always use the
+built `dist/index.html`.
+
 ## Project structure
 
 ```
