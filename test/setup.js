@@ -1,7 +1,7 @@
 // Test setup: polyfill browser globals that the jsdom environment on this
 // Node version does not provide. Real browsers supply these natively.
 
-if (typeof globalThis.localStorage === 'undefined') {
+if (typeof globalThis.localStorage?.clear !== 'function') {
   const store = new Map();
   globalThis.localStorage = {
     getItem: (k) => (store.has(k) ? store.get(k) : null),
