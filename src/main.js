@@ -12,7 +12,7 @@ import {
   canPlaceDouble,
   canPlaceAnywhere,
   visualVals,
-  findModeGroups,
+  findGroups,
   pickMergeTarget,
   shouldCollapseForMode,
   explosionTargets,
@@ -520,7 +520,7 @@ function spawnParticles(el) {
 
 function processMatches() {
   const activeGameVersion = gameVersion;
-  const groups = findModeGroups(board, gridSize, matchCount, gameMode);
+  const groups = findGroups(board, gridSize, matchCount);
 
   if (groups.length === 0) {
     processing = false;

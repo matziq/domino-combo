@@ -9,8 +9,9 @@ Three game modes (pick one in **Settings**):
 - **Chaos** — matching 4+ tiles starts a collapse; every chained match keeps
   collapsing the board until no matches remain.
 - **Ultra Chaos** — matching 4+ tiles valued 1-5 or 3+ sixes collapses the
-  board. Four or more sixes shake, explode every neighboring tile for its face
-  value in bonus points, and then collapse the survivors.
+  board, while Hard mode still requires four of any value. Four or more sixes
+  shake, explode every neighboring tile for its face value in bonus points,
+  and then collapse the survivors.
 
 ## Play
 
