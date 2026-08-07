@@ -12,11 +12,12 @@ import {
   canPlaceDouble,
   canPlaceAnywhere,
   visualVals,
-  findGroups,
+  findModeGroups,
   pickMergeTarget,
-  triggersCollapse,
+  shouldCollapseForMode,
+  explosionTargets,
   collapseColumns,
-  CHAOS_MATCH_THRESHOLD,
+  ULTRA_SIX_EXPLOSION_THRESHOLD,
   computeScore,
   sanitizeName,
   randVal,
@@ -57,8 +58,8 @@ let processing = false; // lock while clearing matches
 let lastPlacedCells = []; // track where pieces were placed for merge targeting
 let maxSpawnVal = 1; // highest value that can appear in spawned pieces
 let chainDepth = 0; // tracks successive chain reactions
-let hasCollapsedInChain = false; // Ultra Chaos: true once a collapse has fired
-// during the current placement's chain, lowering the bar for further ones
+let hasChaosCollapsedInChain = false;
+let gameVersion = 0; // invalidates delayed match effects when a new game starts
 
 // ── Audio (Web Audio API – no files needed) ────────────────
 let _actx = null;
@@ -176,6 +177,7 @@ function sfx(type) {
 
 // ── Init ───────────────────────────────────────────────────
 function init() {
+  gameVersion++;
   score = 0;
   processing = false;
   maxSpawnVal = 3;
@@ -183,6 +185,7 @@ function init() {
   board = createBoard(gridSize);
   updateScore();
   updateModeDisplay();
+  updateSoundControl();
   renderBoard();
   spawnPiece();
 }
@@ -245,6 +248,14 @@ function updateModeDisplay() {
       : gameMode === 'ultra'
         ? '\u{1F300} Ultra Chaos'
         : '';
+}
+
+function updateSoundControl() {
+  const button = document.getElementById('btn-sound');
+  if (!button) return;
+  button.setAttribute('aria-checked', String(soundOn));
+  button.setAttribute('aria-label', soundOn ? 'Turn sound off' : 'Turn sound on');
+  document.getElementById('sound-label').textContent = soundOn ? 'Sound' : 'Muted';
 }
 
 // ── Piece ──────────────────────────────────────────────────
@@ -434,8 +445,11 @@ function ptrUp(e) {
     renderPiece();
     processing = true;
     chainDepth = 0;
-    hasCollapsedInChain = false;
-    setTimeout(processMatches, 120);
+    hasChaosCollapsedInChain = false;
+    const placedGameVersion = gameVersion;
+    setTimeout(() => {
+      if (placedGameVersion === gameVersion) processMatches();
+    }, 120);
   } else {
     renderPiece(true);
   }
@@ -505,11 +519,12 @@ function spawnParticles(el) {
 }
 
 function processMatches() {
-  const groups = findGroups(board, gridSize, matchCount);
+  const activeGameVersion = gameVersion;
+  const groups = findModeGroups(board, gridSize, matchCount, gameMode);
 
   if (groups.length === 0) {
     processing = false;
-    hasCollapsedInChain = false;
+    hasChaosCollapsedInChain = false;
     spawnPiece();
     return;
   }
@@ -522,6 +537,7 @@ function processMatches() {
 
   const allClear = new Set(); // cells to animate clearing
   const mergeResults = []; // {r, c, newVal} for upgrades
+  const explodingSixCells = [];
 
   for (const grp of groups) {
     grp.cells.forEach(({ r, c }) => {
@@ -537,8 +553,27 @@ function processMatches() {
         maxSpawnVal = grp.val + 1;
       }
     }
-    // If value === 6 (red) → they just disappear
+    if (
+      gameMode === 'ultra' &&
+      grp.val === 6 &&
+      grp.cells.length >= ULTRA_SIX_EXPLOSION_THRESHOLD
+    ) {
+      explodingSixCells.push(...grp.cells);
+    }
   }
+
+  const blastTargets =
+    explodingSixCells.length > 0
+      ? explosionTargets(
+          board,
+          gridSize,
+          explodingSixCells,
+          [...allClear].map((key) => {
+            const [r, c] = key.split(',').map(Number);
+            return { r, c };
+          }),
+        )
+      : [];
 
   score += totalPts;
   if (score > highScore) {
@@ -554,7 +589,7 @@ function processMatches() {
     setTimeout(() => showPopup(chainBonus, chainDepth, true, 40), 350);
   }
 
-  // Track which groups are 6s for special effect
+  // Track which groups are 6s for their normal clearing effect.
   const sixCells = new Set();
   for (const grp of groups) {
     if (grp.val === 6) {
@@ -562,12 +597,15 @@ function processMatches() {
     }
   }
 
-  // Animate clearing
+  // Four or more sixes in Ultra Chaos charge for one second before exploding.
+  const explodingSixKeys = new Set(explodingSixCells.map(({ r, c }) => `${r},${c}`));
   allClear.forEach((k) => {
     const [r, c] = k.split(',').map(Number);
     const el = cellEl(r, c);
     if (el) {
-      if (sixCells.has(k)) {
+      if (explodingSixKeys.has(k)) {
+        el.classList.add('six-charging');
+      } else if (sixCells.has(k)) {
         el.classList.add('clearing-6');
         spawnParticles(el);
       } else {
@@ -576,12 +614,46 @@ function processMatches() {
     }
   });
 
-  if (sixCells.size > 0) sfx('explode6');
+  if (sixCells.size > 0 && explodingSixCells.length === 0) sfx('explode6');
 
+  const chargeDelay = explodingSixCells.length > 0 ? 1000 : 0;
+  if (explodingSixCells.length > 0) {
+    setTimeout(() => {
+      if (activeGameVersion !== gameVersion) return;
+      explodingSixCells.forEach(({ r, c }) => {
+        const el = cellEl(r, c);
+        if (!el) return;
+        el.classList.remove('six-charging');
+        el.classList.add('clearing-6');
+        spawnParticles(el);
+      });
+      blastTargets.forEach(({ r, c }) => {
+        const el = cellEl(r, c);
+        if (!el) return;
+        el.classList.add('explosion-victim');
+        spawnParticles(el);
+      });
+      sfx('explode6');
+
+      const blastPoints = blastTargets.reduce((total, target) => total + target.val, 0);
+      if (blastPoints > 0) {
+        score += blastPoints;
+        if (score > highScore) highScore = score;
+        updateScore();
+        showPopup(blastPoints, 0, false, 55, 'EXPLOSION');
+      }
+    }, chargeDelay);
+  }
+
+  const resolutionDelay = explodingSixCells.length > 0 ? chargeDelay + 550 : 420;
   setTimeout(() => {
+    if (activeGameVersion !== gameVersion) return;
     // Clear all matched cells
     allClear.forEach((k) => {
       const [r, c] = k.split(',').map(Number);
+      board[r][c] = null;
+    });
+    blastTargets.forEach(({ r, c }) => {
       board[r][c] = null;
     });
 
@@ -595,26 +667,18 @@ function processMatches() {
     // Update trigger cells for next chain reaction
     lastPlacedCells = newPlaced;
 
-    // Chaos mode: a big enough match (4+ tiles) collapses the whole board,
-    // letting remaining tiles fall and fill the gaps. This can shuffle
-    // previously-separated tiles into adjacency, cascading into more combos
-    // on the next chain-reaction pass below.
-    //
-    // Ultra Chaos: same idea, but once the first 4+ collapse has fired for
-    // this placement, the bar drops to the normal match size (matchCount)
-    // for every subsequent collapse — so the cascade keeps collapsing the
-    // board as long as ANY match keeps forming, not just big ones.
-    const collapseThreshold =
-      gameMode === 'ultra' && hasCollapsedInChain ? matchCount : CHAOS_MATCH_THRESHOLD;
-    const shouldCollapse =
-      (gameMode === 'chaos' || gameMode === 'ultra') &&
-      triggersCollapse(groups, collapseThreshold);
+    const shouldCollapse = shouldCollapseForMode(
+      gameMode,
+      groups,
+      matchCount,
+      hasChaosCollapsedInChain,
+    );
 
     if (shouldCollapse) {
       const { board: collapsed, moved } = collapseColumns(board, gridSize);
       board = collapsed;
       lastPlacedCells = []; // no player-placed cell to prefer after a collapse
-      hasCollapsedInChain = true;
+      if (gameMode === 'chaos') hasChaosCollapsedInChain = true;
       sfx('collapse');
       screenShake();
       renderBoard(null, moved.map((m) => ({ r: m.r1, c: m.c1 })));
@@ -622,8 +686,10 @@ function processMatches() {
       renderBoard(null, newPlaced);
     }
 
-    setTimeout(processMatches, 250); // chain reaction
-  }, 420);
+    setTimeout(() => {
+      if (activeGameVersion === gameVersion) processMatches();
+    }, 250);
+  }, resolutionDelay);
 }
 
 // Brief screen shake, used when a Chaos-mode collapse happens.
@@ -638,13 +704,14 @@ function screenShake() {
   setTimeout(() => el.classList.remove('shake'), 400);
 }
 
-function showPopup(pts, comboN, isChain, offsetY) {
+function showPopup(pts, comboN, isChain, offsetY, suffix) {
   const brd = document.getElementById('board').getBoundingClientRect();
   const p = document.createElement('div');
   p.className = 'score-popup' + (comboN ? ' combo' : '') + (isChain ? ' chain' : '');
   let label = '+' + pts;
   if (isChain) label += '  CHAIN ×' + comboN;
   else if (comboN) label += '  COMBO ×' + comboN;
+  else if (suffix) label += '  ' + suffix;
   p.textContent = label;
   p.style.left = brd.left + brd.width / 2 - 50 + 'px';
   p.style.top = brd.top + brd.height / 2 + (offsetY || 0) + 'px';
@@ -710,61 +777,74 @@ function toggleSettings() {
   document.getElementById('opt-sound').value = soundOn ? '1' : '0';
 }
 
+function toggleSound() {
+  soundOn = !soundOn;
+  updateSoundControl();
+  document.getElementById('opt-sound').value = soundOn ? '1' : '0';
+  if (soundOn) sfx('flip');
+}
+
 function applySettings() {
-  gridSize = parseInt(document.getElementById('opt-size').value, 10);
-  matchCount = parseInt(document.getElementById('opt-match').value, 10);
-  gameMode = document.getElementById('opt-mode').value;
+  const nextGridSize = parseInt(document.getElementById('opt-size').value, 10);
+  const nextMatchCount = parseInt(document.getElementById('opt-match').value, 10);
+  const nextGameMode = document.getElementById('opt-mode').value;
+  const gameRulesChanged =
+    nextGridSize !== gridSize || nextMatchCount !== matchCount || nextGameMode !== gameMode;
+
+  gridSize = nextGridSize;
+  matchCount = nextMatchCount;
+  gameMode = nextGameMode;
   soundOn = document.getElementById('opt-sound').value === '1';
   document.getElementById('settings-modal').classList.remove('show');
-  init();
+  updateSoundControl();
+  if (gameRulesChanged) init();
 }
 
-// ── Immersive mode (full screen + portrait lock) ────────────
-// Both the Fullscreen API and Screen Orientation API require an active
-// user gesture on most browsers (notably Chrome for Android), so we
-// request them on tap/click rather than on page load.
-function requestImmersiveMode() {
+// Full screen is only entered from its dedicated button. Browsers require
+// that explicit user gesture and may show their standard exit notification.
+async function toggleFullscreen() {
   const root = document.documentElement;
-  if (root.requestFullscreen && !document.fullscreenElement) {
-    root.requestFullscreen().catch(() => {
-      /* ignored: not user-initiated, unsupported, or already denied */
-    });
-  }
-  if (screen.orientation && screen.orientation.lock) {
-    screen.orientation.lock('portrait').catch(() => {
-      /* ignored: only Chrome for Android grants this, and only while
-         the page is fullscreen; other browsers fall back to the
-         #rotate-overlay CSS prompt defined in index.html */
-    });
+  try {
+    if (document.fullscreenElement) {
+      await document.exitFullscreen();
+    } else if (root.requestFullscreen) {
+      await root.requestFullscreen();
+      if (screen.orientation && screen.orientation.lock) {
+        try {
+          await screen.orientation.lock('portrait');
+        } catch (error) {
+          console.warn('Portrait orientation lock was not available.', error);
+        }
+      }
+    }
+  } catch (error) {
+    console.warn('Full screen request was not completed.', error);
   }
 }
 
-function enableImmersiveMode() {
-  const armListener = () => {
-    document.addEventListener('pointerdown', requestImmersiveMode, { once: true });
-  };
-
-  // Attempt on the very first user interaction (required for the
-  // Fullscreen/Orientation APIs to be allowed).
-  armListener();
-
-  // Android exits fullscreen when the tab is backgrounded; re-arm so the
-  // next tap re-requests it once the game becomes visible again.
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && !document.fullscreenElement) {
-      armListener();
-    }
-  });
+function updateFullscreenControl() {
+  const button = document.getElementById('btn-fullscreen');
+  if (!button) return;
+  const supported = Boolean(document.documentElement.requestFullscreen);
+  button.hidden = !supported;
+  const isFullscreen = Boolean(document.fullscreenElement);
+  const label = isFullscreen ? 'Exit full screen' : 'Enter full screen';
+  button.setAttribute('aria-label', label);
+  button.title = label;
 }
 
 // ── Event wiring (unobtrusive, replaces inline onclick) ────
 function wireControls() {
   document.getElementById('btn-new-game').addEventListener('click', newGame);
+  document.getElementById('btn-sound').addEventListener('click', toggleSound);
+  document.getElementById('btn-fullscreen').addEventListener('click', toggleFullscreen);
   document.getElementById('btn-help').addEventListener('click', toggleHelp);
   document.getElementById('btn-settings').addEventListener('click', toggleSettings);
   document.getElementById('btn-help-close').addEventListener('click', toggleHelp);
   document.getElementById('btn-apply-settings').addEventListener('click', applySettings);
   document.getElementById('btn-play-again').addEventListener('click', submitHighScore);
+  document.addEventListener('fullscreenchange', updateFullscreenControl);
+  updateFullscreenControl();
 
   // Global guards
   document.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -778,5 +858,4 @@ function wireControls() {
 
 // ── Start ──────────────────────────────────────────────────
 wireControls();
-enableImmersiveMode();
 init();

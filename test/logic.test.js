@@ -11,8 +11,12 @@ import {
   canPlaceAnywhere,
   visualVals,
   findGroups,
+  findModeGroups,
   pickMergeTarget,
   triggersCollapse,
+  triggersUltraCollapse,
+  shouldCollapseForMode,
+  explosionTargets,
   collapseColumns,
   CHAOS_MATCH_THRESHOLD,
   computeScore,
@@ -199,6 +203,15 @@ describe('findGroups', () => {
     expect(groups[0].cells).toHaveLength(3);
   });
 
+  describe('findModeGroups', () => {
+    it('recognizes three sixes in Ultra Chaos when the match setting is four', () => {
+      const board = createBoard(4);
+      board[0][0] = board[0][1] = board[0][2] = 6;
+      expect(findModeGroups(board, 4, 4, 'ultra')).toHaveLength(1);
+      expect(findModeGroups(board, 4, 4, 'chaos')).toHaveLength(0);
+    });
+  });
+
   it('ignores runs shorter than matchCount', () => {
     const board = createBoard(3);
     board[0][0] = 4;
@@ -282,6 +295,59 @@ describe('triggersCollapse', () => {
     const groups = [{ val: 1, cells: [{ r: 0, c: 0 }, { r: 0, c: 1 }] }];
     expect(triggersCollapse(groups, 2)).toBe(true);
     expect(triggersCollapse(groups, 3)).toBe(false);
+  });
+});
+
+describe('triggersUltraCollapse', () => {
+  it('collapses for four tiles valued 1-5 but not three', () => {
+    expect(triggersUltraCollapse([{ val: 4, cells: [{}, {}, {}, {}] }])).toBe(true);
+    expect(triggersUltraCollapse([{ val: 4, cells: [{}, {}, {}] }])).toBe(false);
+  });
+
+  describe('shouldCollapseForMode', () => {
+    const threeFours = [{ val: 4, cells: [{}, {}, {}] }];
+    const fourFours = [{ val: 4, cells: [{}, {}, {}, {}] }];
+    const threeSixes = [{ val: 6, cells: [{}, {}, {}] }];
+
+    it('makes Chaos continue collapsing ordinary matches after its first 4+ trigger', () => {
+      expect(shouldCollapseForMode('chaos', threeFours, 3, false)).toBe(false);
+      expect(shouldCollapseForMode('chaos', fourFours, 3, false)).toBe(true);
+      expect(shouldCollapseForMode('chaos', threeFours, 3, true)).toBe(true);
+    });
+
+    it('keeps Ultra Chaos limited to its explicit triggers', () => {
+      expect(shouldCollapseForMode('ultra', threeFours, 3, false)).toBe(false);
+      expect(shouldCollapseForMode('ultra', fourFours, 3, false)).toBe(true);
+      expect(shouldCollapseForMode('ultra', threeSixes, 3, false)).toBe(true);
+    });
+
+    it('never collapses Classic mode', () => {
+      expect(shouldCollapseForMode('classic', fourFours, 3, false)).toBe(false);
+    });
+  });
+
+  it('collapses for three sixes', () => {
+    expect(triggersUltraCollapse([{ val: 6, cells: [{}, {}, {}] }])).toBe(true);
+  });
+});
+
+describe('explosionTargets', () => {
+  it('finds all eight occupied neighbors around an exploding six', () => {
+    const board = Array.from({ length: 3 }, () => Array(3).fill(1));
+    board[1][1] = 6;
+    const targets = explosionTargets(board, 3, [{ r: 1, c: 1 }]);
+    expect(targets).toHaveLength(8);
+    expect(targets.reduce((sum, cell) => sum + cell.val, 0)).toBe(8);
+  });
+
+  it('deduplicates overlapping blasts and excludes other matched cells', () => {
+    const board = Array.from({ length: 3 }, () => Array(3).fill(2));
+    board[1][0] = board[1][1] = 6;
+    const sources = [{ r: 1, c: 0 }, { r: 1, c: 1 }];
+    const excluded = [...sources, { r: 0, c: 0 }];
+    const targets = explosionTargets(board, 3, sources, excluded);
+    expect(targets).toHaveLength(6);
+    expect(new Set(targets.map(({ r, c }) => `${r},${c}`)).size).toBe(6);
   });
 });
 

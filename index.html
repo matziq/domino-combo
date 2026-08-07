@@ -68,6 +68,76 @@
             margin-bottom: 8px;
         }
 
+        #quick-controls {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            min-height: 32px;
+            margin-bottom: 6px;
+        }
+
+        #quick-controls button {
+            color: #29B6F6;
+            background: #111;
+            border: 1px solid #444;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .sound-toggle {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            height: 32px;
+            padding: 0 9px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .toggle-track {
+            position: relative;
+            width: 30px;
+            height: 16px;
+            border-radius: 8px;
+            background: #555;
+            transition: background-color 0.18s ease;
+        }
+
+        .toggle-knob {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #fff;
+            transition: transform 0.18s ease;
+        }
+
+        .sound-toggle[aria-checked="true"] .toggle-track {
+            background: #29B6F6;
+        }
+
+        .sound-toggle[aria-checked="true"] .toggle-knob {
+            transform: translateX(14px);
+        }
+
+        .quick-control-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            font-size: 19px;
+            line-height: 1;
+        }
+
+        #quick-controls button:focus-visible {
+            outline: 2px solid #fff;
+            outline-offset: 2px;
+        }
+
         /* === Board === */
         #board {
             display: grid;
@@ -344,6 +414,18 @@
             animation: screenShake 0.4s ease-in-out;
         }
 
+        @keyframes sixChargeShake {
+            0%, 100% { transform: translate(0, 0) rotate(0); filter: brightness(1); }
+            25% { transform: translate(-3px, 2px) rotate(-2deg); filter: brightness(1.5); }
+            50% { transform: translate(3px, -2px) rotate(2deg); filter: brightness(2); }
+            75% { transform: translate(-2px, -2px) rotate(-1deg); filter: brightness(1.5); }
+        }
+
+        .six-charging .die {
+            animation: sixChargeShake 0.1s linear infinite;
+            box-shadow: 0 0 18px #FF5252;
+        }
+
         /* === Special 6s Clearing Effect === */
         @keyframes explode6 {
             0% {
@@ -385,6 +467,10 @@
             animation: flashGlow 0.5s ease-out forwards;
             z-index: 10;
             pointer-events: none;
+        }
+
+        .explosion-victim .die {
+            animation: explode6 0.55s ease-out forwards !important;
         }
 
         @keyframes flashGlow {
@@ -610,6 +696,13 @@
                 display: flex;
             }
         }
+
+        @media (prefers-reduced-motion: reduce) {
+            .six-charging .die {
+                animation: none;
+                filter: brightness(1.8);
+            }
+        }
     </style>
 </head>
 
@@ -625,6 +718,15 @@
         <div id="high-score">Best: 0</div>
         <div id="high-score-name" style="font-size:11px;color:#666;margin-bottom:4px;"></div>
         <div id="mode-display" style="font-size:12px;color:#FF8A65;font-weight:bold;margin-bottom:4px;"></div>
+        <div id="quick-controls">
+            <button class="sound-toggle" id="btn-sound" type="button" role="switch" aria-checked="true"
+                aria-label="Turn sound off">
+                <span class="toggle-track" aria-hidden="true"><span class="toggle-knob"></span></span>
+                <span id="sound-label">Sound</span>
+            </button>
+            <button class="quick-control-btn" id="btn-fullscreen" type="button" aria-label="Enter full screen"
+                title="Enter full screen">&#9974;</button>
+        </div>
         <div id="board"></div>
         <div id="piece-area"></div>
         <div id="flip-hint"></div>
@@ -668,13 +770,12 @@
                 <p style="margin-bottom:10px;">Match <b style="color:#29B6F6;">3+</b> same tiles to merge them into the
                     next value.</p>
                 <p style="margin-bottom:10px;">Chain reactions earn <b style="color:#FF6D00;">bonus points</b>!</p>
-                <p style="margin-bottom:10px;">Red <b style="color:#EF5350;">6s</b> explode and vanish when matched.</p>
-                <p style="margin-bottom:10px;"><b style="color:#FF8A65;">Chaos mode:</b> matches of 4+ tiles
-                    collapse the whole board, letting tiles fall to fill the gaps &mdash; this can cascade into
-                    more combos!</p>
-                <p style="margin-bottom:10px;"><b style="color:#FF3D00;">Ultra Chaos:</b> same as Chaos, but once
-                    the board starts collapsing, any match of 3+ keeps it collapsing again and again until
-                    nothing matches anymore.</p>
+                <p style="margin-bottom:10px;">Red <b style="color:#EF5350;">6s</b> vanish when matched.</p>
+                <p style="margin-bottom:10px;"><b style="color:#FF8A65;">Chaos mode:</b> a match of 4+ starts a
+                    collapse, then every chained match keeps the board collapsing until no matches remain.</p>
+                <p style="margin-bottom:10px;"><b style="color:#FF3D00;">Ultra Chaos:</b> 4+ matching tiles or
+                    3+ sixes collapse the board. Match 4+ sixes to destroy and score every neighboring tile
+                    before the collapse.</p>
                 <p style="margin-bottom:0;">Game ends when no moves remain.</p>
             </div>
             <button class="close-settings" id="btn-help-close" style="margin-top:14px;">Got It</button>

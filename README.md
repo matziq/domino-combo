@@ -6,11 +6,11 @@ to merge them into the next value, and chain reactions for bonus points.
 Three game modes (pick one in **Settings**):
 
 - **Classic** — merges resolve in place; no board-wide reshuffling.
-- **Chaos** — matching 4+ tiles collapses the whole board (tiles fall to fill
-  the gaps), which can cascade into further combos.
-- **Ultra Chaos** — same trigger as Chaos, but once a collapse starts, any
-  match of 3+ keeps collapsing the board again and again until nothing
-  matches anymore.
+- **Chaos** — matching 4+ tiles starts a collapse; every chained match keeps
+  collapsing the board until no matches remain.
+- **Ultra Chaos** — matching 4+ tiles valued 1-5 or 3+ sixes collapses the
+  board. Four or more sixes shake, explode every neighboring tile for its face
+  value in bonus points, and then collapse the survivors.
 
 ## Play
 
@@ -21,6 +21,10 @@ Three game modes (pick one in **Settings**):
 Do not double-click the root `index.html`; it is the source entry point and
 requires Vite to serve its JavaScript modules. For offline play, always use the
 built `dist/index.html`.
+
+Sound can be toggled without restarting from the switch above the board.
+Full-screen mode is never automatic; use the adjacent full-screen button when
+you want it.
 
 ## Project structure
 

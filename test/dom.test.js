@@ -57,4 +57,45 @@ describe('game bootstrap (jsdom)', () => {
     document.getElementById('btn-apply-settings').click();
     expect(document.getElementById('mode-display').textContent).toContain('Ultra Chaos');
   });
+
+  it('toggles sound from the board without restarting the game', async () => {
+    await import('../src/main.js');
+    const pieceBefore = document.getElementById('current-piece');
+    const soundButton = document.getElementById('btn-sound');
+
+    soundButton.click();
+
+    expect(soundButton.getAttribute('aria-checked')).toBe('false');
+    expect(document.getElementById('current-piece')).toBe(pieceBefore);
+  });
+
+  it('preserves the game when only sound changes in Settings', async () => {
+    await import('../src/main.js');
+    const pieceBefore = document.getElementById('current-piece');
+    document.getElementById('opt-sound').value = '0';
+
+    document.getElementById('btn-apply-settings').click();
+
+    expect(document.getElementById('current-piece')).toBe(pieceBefore);
+    expect(document.getElementById('btn-sound').getAttribute('aria-checked')).toBe('false');
+  });
+
+  it('requests full screen only from the dedicated button', async () => {
+    const requestFullscreen = vi.fn().mockResolvedValue();
+    Object.defineProperty(document.documentElement, 'requestFullscreen', {
+      configurable: true,
+      value: requestFullscreen,
+    });
+
+    try {
+      await import('../src/main.js');
+      document.getElementById('btn-help').click();
+      expect(requestFullscreen).not.toHaveBeenCalled();
+
+      document.getElementById('btn-fullscreen').click();
+      await vi.waitFor(() => expect(requestFullscreen).toHaveBeenCalledOnce());
+    } finally {
+      delete document.documentElement.requestFullscreen;
+    }
+  });
 });
