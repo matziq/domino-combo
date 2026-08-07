@@ -38,6 +38,8 @@ export function hsKey(gridSize, matchCount, mode = 'classic') {
 // Chaos mode: a matched group of this size or larger triggers a full-board
 // gravity collapse, which can cascade into further combos.
 export const CHAOS_MATCH_THRESHOLD = 4;
+export const ULTRA_SIX_MATCH_THRESHOLD = 3;
+export const ULTRA_SIX_EXPLOSION_THRESHOLD = 4;
 
 // Board cells a piece would occupy if anchored at (r, c).
 export function cellsFor(r, c, piece) {
@@ -156,6 +158,20 @@ export function findGroups(board, gridSize, matchCount) {
   return groups;
 }
 
+// Ultra Chaos always recognizes a group of three sixes, even when the
+// configured match requirement is four.
+export function findModeGroups(board, gridSize, matchCount, gameMode) {
+  const searchThreshold =
+    gameMode === 'ultra' ? Math.min(matchCount, ULTRA_SIX_MATCH_THRESHOLD) : matchCount;
+  return findGroups(board, gridSize, searchThreshold).filter(
+    (group) =>
+      group.cells.length >= matchCount ||
+      (gameMode === 'ultra' &&
+        group.val === 6 &&
+        group.cells.length >= ULTRA_SIX_MATCH_THRESHOLD),
+  );
+}
+
 // Choose where a cleared group merges: prefer a just-placed cell inside it,
 // otherwise fall back to the cell closest to the group's center.
 export function pickMergeTarget(group, lastPlacedCells) {
@@ -187,6 +203,53 @@ export function pickMergeTarget(group, lastPlacedCells) {
 // True if any matched group is large enough to trigger a Chaos collapse.
 export function triggersCollapse(groups, threshold = CHAOS_MATCH_THRESHOLD) {
   return groups.some((g) => g.cells.length >= threshold);
+}
+
+// Ultra Chaos collapses for 4+ tiles valued 1-5 or 3+ sixes.
+export function triggersUltraCollapse(groups) {
+  return groups.some(
+    (group) =>
+      group.cells.length >= CHAOS_MATCH_THRESHOLD ||
+      (group.val === 6 && group.cells.length >= ULTRA_SIX_MATCH_THRESHOLD),
+  );
+}
+
+export function shouldCollapseForMode(gameMode, groups, matchCount, hasChaosCollapsed) {
+  if (gameMode === 'chaos') {
+    const threshold = hasChaosCollapsed ? matchCount : CHAOS_MATCH_THRESHOLD;
+    return triggersCollapse(groups, threshold);
+  }
+  return gameMode === 'ultra' && triggersUltraCollapse(groups);
+}
+
+// Find every occupied cell touching an exploding group, including diagonals.
+// Overlapping blast areas only destroy and score a tile once.
+export function explosionTargets(board, gridSize, sourceCells, excludedCells = sourceCells) {
+  const excluded = new Set(excludedCells.map(({ r, c }) => `${r},${c}`));
+  const targets = new Map();
+
+  for (const { r, c } of sourceCells) {
+    for (let dr = -1; dr <= 1; dr++) {
+      for (let dc = -1; dc <= 1; dc++) {
+        if (dr === 0 && dc === 0) continue;
+        const nr = r + dr;
+        const nc = c + dc;
+        const key = `${nr},${nc}`;
+        if (
+          nr >= 0 &&
+          nr < gridSize &&
+          nc >= 0 &&
+          nc < gridSize &&
+          board[nr][nc] !== null &&
+          !excluded.has(key)
+        ) {
+          targets.set(key, { r: nr, c: nc, val: board[nr][nc] });
+        }
+      }
+    }
+  }
+
+  return [...targets.values()];
 }
 
 // Chaos mode: apply gravity to every column, letting remaining tiles fall
