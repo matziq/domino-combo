@@ -158,20 +158,6 @@ export function findGroups(board, gridSize, matchCount) {
   return groups;
 }
 
-// Ultra Chaos always recognizes a group of three sixes, even when the
-// configured match requirement is four.
-export function findModeGroups(board, gridSize, matchCount, gameMode) {
-  const searchThreshold =
-    gameMode === 'ultra' ? Math.min(matchCount, ULTRA_SIX_MATCH_THRESHOLD) : matchCount;
-  return findGroups(board, gridSize, searchThreshold).filter(
-    (group) =>
-      group.cells.length >= matchCount ||
-      (gameMode === 'ultra' &&
-        group.val === 6 &&
-        group.cells.length >= ULTRA_SIX_MATCH_THRESHOLD),
-  );
-}
-
 // Choose where a cleared group merges: prefer a just-placed cell inside it,
 // otherwise fall back to the cell closest to the group's center.
 export function pickMergeTarget(group, lastPlacedCells) {
@@ -205,13 +191,15 @@ export function triggersCollapse(groups, threshold = CHAOS_MATCH_THRESHOLD) {
   return groups.some((g) => g.cells.length >= threshold);
 }
 
-// Ultra Chaos collapses for 4+ tiles valued 1-5 or 3+ sixes.
-export function triggersUltraCollapse(groups) {
-  return groups.some(
-    (group) =>
-      group.cells.length >= CHAOS_MATCH_THRESHOLD ||
-      (group.val === 6 && group.cells.length >= ULTRA_SIX_MATCH_THRESHOLD),
-  );
+// Ultra Chaos's special thresholds never lower the configured match rule.
+export function triggersUltraCollapse(groups, matchCount = ULTRA_SIX_MATCH_THRESHOLD) {
+  return groups.some((group) => {
+    const ultraThreshold =
+      group.val === 6
+        ? Math.max(ULTRA_SIX_MATCH_THRESHOLD, matchCount)
+        : Math.max(CHAOS_MATCH_THRESHOLD, matchCount);
+    return group.cells.length >= ultraThreshold;
+  });
 }
 
 export function shouldCollapseForMode(gameMode, groups, matchCount, hasChaosCollapsed) {
@@ -219,7 +207,7 @@ export function shouldCollapseForMode(gameMode, groups, matchCount, hasChaosColl
     const threshold = hasChaosCollapsed ? matchCount : CHAOS_MATCH_THRESHOLD;
     return triggersCollapse(groups, threshold);
   }
-  return gameMode === 'ultra' && triggersUltraCollapse(groups);
+  return gameMode === 'ultra' && triggersUltraCollapse(groups, matchCount);
 }
 
 // Find every occupied cell touching an exploding group, including diagonals.

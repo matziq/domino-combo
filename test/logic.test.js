@@ -11,7 +11,6 @@ import {
   canPlaceAnywhere,
   visualVals,
   findGroups,
-  findModeGroups,
   pickMergeTarget,
   triggersCollapse,
   triggersUltraCollapse,
@@ -203,15 +202,6 @@ describe('findGroups', () => {
     expect(groups[0].cells).toHaveLength(3);
   });
 
-  describe('findModeGroups', () => {
-    it('recognizes three sixes in Ultra Chaos when the match setting is four', () => {
-      const board = createBoard(4);
-      board[0][0] = board[0][1] = board[0][2] = 6;
-      expect(findModeGroups(board, 4, 4, 'ultra')).toHaveLength(1);
-      expect(findModeGroups(board, 4, 4, 'chaos')).toHaveLength(0);
-    });
-  });
-
   it('ignores runs shorter than matchCount', () => {
     const board = createBoard(3);
     board[0][0] = 4;
@@ -319,6 +309,7 @@ describe('triggersUltraCollapse', () => {
       expect(shouldCollapseForMode('ultra', threeFours, 3, false)).toBe(false);
       expect(shouldCollapseForMode('ultra', fourFours, 3, false)).toBe(true);
       expect(shouldCollapseForMode('ultra', threeSixes, 3, false)).toBe(true);
+      expect(shouldCollapseForMode('ultra', threeSixes, 4, false)).toBe(false);
     });
 
     it('never collapses Classic mode', () => {
@@ -328,6 +319,13 @@ describe('triggersUltraCollapse', () => {
 
   it('collapses for three sixes', () => {
     expect(triggersUltraCollapse([{ val: 6, cells: [{}, {}, {}] }])).toBe(true);
+  });
+
+  it('requires four sixes when the configured match requirement is four', () => {
+    const threeSixes = [{ val: 6, cells: [{}, {}, {}] }];
+    const fourSixes = [{ val: 6, cells: [{}, {}, {}, {}] }];
+    expect(triggersUltraCollapse(threeSixes, 4)).toBe(false);
+    expect(triggersUltraCollapse(fourSixes, 4)).toBe(true);
   });
 });
 
