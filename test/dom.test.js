@@ -27,6 +27,8 @@ describe('game bootstrap (jsdom)', () => {
     expect(cells).toHaveLength(25);
     expect(document.getElementById('score-display').textContent).toBe('0');
     expect(document.getElementById('current-piece')).not.toBeNull();
+    expect(document.getElementById('mode-display').textContent).toContain('Ultra Chaos');
+    expect(document.getElementById('opt-mode').value).toBe('ultra');
   });
 
   it('resets the board when New Game is clicked', async () => {

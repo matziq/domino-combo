@@ -27,7 +27,7 @@ import {
 // ── State ──────────────────────────────────────────────────
 let gridSize = 5;
 let matchCount = 3;
-let gameMode = 'classic'; // 'classic' | 'chaos' | 'ultra'
+let gameMode = 'ultra'; // 'classic' | 'chaos' | 'ultra'
 let soundOn = true;
 
 let board = [];
