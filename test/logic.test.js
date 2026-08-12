@@ -13,8 +13,9 @@ import {
   findGroups,
   pickMergeTarget,
   triggersCollapse,
-  triggersUltraCollapse,
+  triggersChaosCollapse,
   shouldCollapseForMode,
+  collapseDirectionForMode,
   explosionTargets,
   collapseColumns,
   CHAOS_MATCH_THRESHOLD,
@@ -288,10 +289,10 @@ describe('triggersCollapse', () => {
   });
 });
 
-describe('triggersUltraCollapse', () => {
+describe('triggersChaosCollapse', () => {
   it('collapses for four tiles valued 1-5 but not three', () => {
-    expect(triggersUltraCollapse([{ val: 4, cells: [{}, {}, {}, {}] }])).toBe(true);
-    expect(triggersUltraCollapse([{ val: 4, cells: [{}, {}, {}] }])).toBe(false);
+    expect(triggersChaosCollapse([{ val: 4, cells: [{}, {}, {}, {}] }])).toBe(true);
+    expect(triggersChaosCollapse([{ val: 4, cells: [{}, {}, {}] }])).toBe(false);
   });
 
   describe('shouldCollapseForMode', () => {
@@ -299,33 +300,52 @@ describe('triggersUltraCollapse', () => {
     const fourFours = [{ val: 4, cells: [{}, {}, {}, {}] }];
     const threeSixes = [{ val: 6, cells: [{}, {}, {}] }];
 
-    it('makes Chaos continue collapsing ordinary matches after its first 4+ trigger', () => {
-      expect(shouldCollapseForMode('chaos', threeFours, 3, false)).toBe(false);
-      expect(shouldCollapseForMode('chaos', fourFours, 3, false)).toBe(true);
-      expect(shouldCollapseForMode('chaos', threeFours, 3, true)).toBe(true);
+    it('gives Chaos the former Ultimate collapse thresholds', () => {
+      expect(shouldCollapseForMode('chaos', threeFours, 3)).toBe(false);
+      expect(shouldCollapseForMode('chaos', fourFours, 3)).toBe(true);
+      expect(shouldCollapseForMode('chaos', threeSixes, 3)).toBe(true);
     });
 
-    it('keeps Ultra Chaos limited to its explicit triggers', () => {
-      expect(shouldCollapseForMode('ultra', threeFours, 3, false)).toBe(false);
-      expect(shouldCollapseForMode('ultra', fourFours, 3, false)).toBe(true);
-      expect(shouldCollapseForMode('ultra', threeSixes, 3, false)).toBe(true);
-      expect(shouldCollapseForMode('ultra', threeSixes, 4, false)).toBe(false);
+    it('uses the same explicit thresholds for Ultimate Chaos', () => {
+      expect(shouldCollapseForMode('ultra', threeFours, 3)).toBe(false);
+      expect(shouldCollapseForMode('ultra', fourFours, 3)).toBe(true);
+      expect(shouldCollapseForMode('ultra', threeSixes, 3)).toBe(true);
+      expect(shouldCollapseForMode('ultra', threeSixes, 4)).toBe(false);
     });
 
     it('never collapses Classic mode', () => {
-      expect(shouldCollapseForMode('classic', fourFours, 3, false)).toBe(false);
+      expect(shouldCollapseForMode('classic', fourFours, 3)).toBe(false);
     });
   });
 
   it('collapses for three sixes', () => {
-    expect(triggersUltraCollapse([{ val: 6, cells: [{}, {}, {}] }])).toBe(true);
+    expect(triggersChaosCollapse([{ val: 6, cells: [{}, {}, {}] }])).toBe(true);
   });
 
   it('requires four sixes when the configured match requirement is four', () => {
     const threeSixes = [{ val: 6, cells: [{}, {}, {}] }];
     const fourSixes = [{ val: 6, cells: [{}, {}, {}, {}] }];
-    expect(triggersUltraCollapse(threeSixes, 4)).toBe(false);
-    expect(triggersUltraCollapse(fourSixes, 4)).toBe(true);
+    expect(triggersChaosCollapse(threeSixes, 4)).toBe(false);
+    expect(triggersChaosCollapse(fourSixes, 4)).toBe(true);
+  });
+});
+
+describe('collapseDirectionForMode', () => {
+  const fourSixes = [{ val: 6, cells: [{}, {}, {}, {}] }];
+  const threeSixes = [{ val: 6, cells: [{}, {}, {}] }];
+  const fourFives = [{ val: 5, cells: [{}, {}, {}, {}] }];
+
+  it('always collapses downward in Chaos', () => {
+    expect(collapseDirectionForMode('chaos', fourSixes)).toBe('down');
+  });
+
+  it('collapses downward for ordinary Ultimate matches and three sixes', () => {
+    expect(collapseDirectionForMode('ultra', fourFives)).toBe('down');
+    expect(collapseDirectionForMode('ultra', threeSixes)).toBe('down');
+  });
+
+  it('collapses upward for four or more sixes in Ultimate Chaos', () => {
+    expect(collapseDirectionForMode('ultra', fourSixes)).toBe('up');
   });
 });
 
@@ -374,6 +394,20 @@ describe('collapseColumns', () => {
     board[0][0] = 3;
     const { moved } = collapseColumns(board, 2);
     expect(moved).toEqual([{ r0: 0, c0: 0, r1: 1, c1: 0, val: 3 }]);
+  });
+
+  it('lifts tiles to the top when gravity points upward', () => {
+    const board = createBoard(3);
+    board[1][0] = 1;
+    board[2][0] = 2;
+    const { board: out, moved } = collapseColumns(board, 3, 'up');
+    expect(out[0][0]).toBe(1);
+    expect(out[1][0]).toBe(2);
+    expect(out[2][0]).toBeNull();
+    expect(moved).toEqual([
+      { r0: 1, c0: 0, r1: 0, c1: 0, val: 1 },
+      { r0: 2, c0: 0, r1: 1, c1: 0, val: 2 },
+    ]);
   });
 
   it('does not mutate the input board', () => {

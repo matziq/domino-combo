@@ -6,12 +6,11 @@ to merge them into the next value, and chain reactions for bonus points.
 Choose one of three game modes whenever the game launches:
 
 - **Classic** — merges resolve in place; no board-wide reshuffling.
-- **Chaos** — matching 4+ tiles starts a collapse; every chained match keeps
-  collapsing the board until no matches remain.
-- **Ultimate Chaos** — matching 4+ tiles valued 1-5 or 3+ sixes collapses the
-  board, while Hard mode still requires four of any value. Four or more sixes
-  shake, explode every neighboring tile for its face value in bonus points,
-  and then collapse the survivors.
+- **Chaos** — matching 4+ tiles valued 1-5 or 3+ sixes collapses the board
+  downward, while Hard mode still requires four of any value. Four or more
+  sixes explode every neighboring tile for bonus points before the collapse.
+- **Ultimate Chaos** — uses the same thresholds and explosions as Chaos, but
+  matching 4+ sixes reverses gravity and makes every survivor fall upward.
 
 ## Play
 
