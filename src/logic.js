@@ -38,8 +38,8 @@ export function hsKey(gridSize, matchCount, mode = 'classic') {
 // Chaos mode: a matched group of this size or larger triggers a full-board
 // gravity collapse, which can cascade into further combos.
 export const CHAOS_MATCH_THRESHOLD = 4;
-export const ULTRA_SIX_MATCH_THRESHOLD = 3;
-export const ULTRA_SIX_EXPLOSION_THRESHOLD = 4;
+export const SIX_MATCH_THRESHOLD = 3;
+export const SIX_EXPLOSION_THRESHOLD = 4;
 
 // Board cells a piece would occupy if anchored at (r, c).
 export function cellsFor(r, c, piece) {
@@ -191,23 +191,33 @@ export function triggersCollapse(groups, threshold = CHAOS_MATCH_THRESHOLD) {
   return groups.some((g) => g.cells.length >= threshold);
 }
 
-// Ultra Chaos's special thresholds never lower the configured match rule.
-export function triggersUltraCollapse(groups, matchCount = ULTRA_SIX_MATCH_THRESHOLD) {
+// Chaos modes use a lower collapse threshold for sixes. The configured match
+// requirement still wins on Hard, where a three-tile group is not a match.
+export function triggersChaosCollapse(groups, matchCount = SIX_MATCH_THRESHOLD) {
   return groups.some((group) => {
-    const ultraThreshold =
+    const collapseThreshold =
       group.val === 6
-        ? Math.max(ULTRA_SIX_MATCH_THRESHOLD, matchCount)
+        ? Math.max(SIX_MATCH_THRESHOLD, matchCount)
         : Math.max(CHAOS_MATCH_THRESHOLD, matchCount);
-    return group.cells.length >= ultraThreshold;
+    return group.cells.length >= collapseThreshold;
   });
 }
 
-export function shouldCollapseForMode(gameMode, groups, matchCount, hasChaosCollapsed) {
-  if (gameMode === 'chaos') {
-    const threshold = hasChaosCollapsed ? matchCount : CHAOS_MATCH_THRESHOLD;
-    return triggersCollapse(groups, threshold);
-  }
-  return gameMode === 'ultra' && triggersUltraCollapse(groups, matchCount);
+export function shouldCollapseForMode(gameMode, groups, matchCount) {
+  return (
+    (gameMode === 'chaos' || gameMode === 'ultra') &&
+    triggersChaosCollapse(groups, matchCount)
+  );
+}
+
+// Ultimate Chaos reverses gravity only when at least four sixes explode.
+export function collapseDirectionForMode(gameMode, groups) {
+  const reversesGravity =
+    gameMode === 'ultra' &&
+    groups.some(
+      (group) => group.val === 6 && group.cells.length >= SIX_EXPLOSION_THRESHOLD,
+    );
+  return reversesGravity ? 'up' : 'down';
 }
 
 // Find every occupied cell touching an exploding group, including diagonals.
@@ -240,11 +250,9 @@ export function explosionTargets(board, gridSize, sourceCells, excludedCells = s
   return [...targets.values()];
 }
 
-// Chaos mode: apply gravity to every column, letting remaining tiles fall
-// down to fill the empty cells left behind by a clear. Returns a fresh
-// board plus the list of tiles that moved (for animation), leaving the
-// input board untouched.
-export function collapseColumns(board, gridSize) {
+// Apply gravity to every column in either direction. Returns a fresh board
+// plus the list of tiles that moved, leaving the input board untouched.
+export function collapseColumns(board, gridSize, direction = 'down') {
   const newBoard = createBoard(gridSize);
   const moved = [];
 
@@ -253,9 +261,8 @@ export function collapseColumns(board, gridSize) {
     for (let r = 0; r < gridSize; r++) {
       if (board[r][c] !== null) vals.push({ r, val: board[r][c] });
     }
-    const offset = gridSize - vals.length;
     vals.forEach((entry, i) => {
-      const newR = offset + i;
+      const newR = direction === 'up' ? i : gridSize - vals.length + i;
       newBoard[newR][c] = entry.val;
       if (newR !== entry.r) {
         moved.push({ r0: entry.r, c0: c, r1: newR, c1: c, val: entry.val });

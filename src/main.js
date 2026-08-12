@@ -15,9 +15,10 @@ import {
   findGroups,
   pickMergeTarget,
   shouldCollapseForMode,
+  collapseDirectionForMode,
   explosionTargets,
   collapseColumns,
-  ULTRA_SIX_EXPLOSION_THRESHOLD,
+  SIX_EXPLOSION_THRESHOLD,
   computeScore,
   sanitizeName,
   randVal,
@@ -58,7 +59,6 @@ let processing = false; // lock while clearing matches
 let lastPlacedCells = []; // track where pieces were placed for merge targeting
 let maxSpawnVal = 1; // highest value that can appear in spawned pieces
 let chainDepth = 0; // tracks successive chain reactions
-let hasChaosCollapsedInChain = false;
 let gameVersion = 0; // invalidates delayed match effects when a new game starts
 
 // ── Audio (Web Audio API – no files needed) ────────────────
@@ -191,7 +191,7 @@ function init() {
 }
 
 // ── Rendering ──────────────────────────────────────────────
-function renderBoard(placed, mergeTargets) {
+function renderBoard(placed, mergeTargets, gravityDirection) {
   const el = document.getElementById('board');
   el.innerHTML = '';
   el.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
@@ -210,7 +210,7 @@ function renderBoard(placed, mergeTargets) {
         cell.classList.add('just-placed');
       }
       if (mergeTargets && mergeTargets.some((p) => p.r === r && p.c === c)) {
-        cell.classList.add('merge-result');
+        cell.classList.add(gravityDirection ? `gravity-${gravityDirection}` : 'merge-result');
       }
       el.appendChild(cell);
     }
@@ -445,7 +445,6 @@ function ptrUp(e) {
     renderPiece();
     processing = true;
     chainDepth = 0;
-    hasChaosCollapsedInChain = false;
     const placedGameVersion = gameVersion;
     setTimeout(() => {
       if (placedGameVersion === gameVersion) processMatches();
@@ -524,7 +523,6 @@ function processMatches() {
 
   if (groups.length === 0) {
     processing = false;
-    hasChaosCollapsedInChain = false;
     spawnPiece();
     return;
   }
@@ -554,9 +552,9 @@ function processMatches() {
       }
     }
     if (
-      gameMode === 'ultra' &&
+      (gameMode === 'chaos' || gameMode === 'ultra') &&
       grp.val === 6 &&
-      grp.cells.length >= ULTRA_SIX_EXPLOSION_THRESHOLD
+      grp.cells.length >= SIX_EXPLOSION_THRESHOLD
     ) {
       explodingSixCells.push(...grp.cells);
     }
@@ -597,7 +595,7 @@ function processMatches() {
     }
   }
 
-  // Four or more sixes in Ultimate Chaos charge for one second before exploding.
+  // Four or more sixes in either Chaos mode charge before exploding.
   const explodingSixKeys = new Set(explodingSixCells.map(({ r, c }) => `${r},${c}`));
   allClear.forEach((k) => {
     const [r, c] = k.split(',').map(Number);
@@ -671,17 +669,24 @@ function processMatches() {
       gameMode,
       groups,
       matchCount,
-      hasChaosCollapsedInChain,
     );
 
     if (shouldCollapse) {
-      const { board: collapsed, moved } = collapseColumns(board, gridSize);
+      const collapseDirection = collapseDirectionForMode(gameMode, groups);
+      const { board: collapsed, moved } = collapseColumns(
+        board,
+        gridSize,
+        collapseDirection,
+      );
       board = collapsed;
       lastPlacedCells = []; // no player-placed cell to prefer after a collapse
-      if (gameMode === 'chaos') hasChaosCollapsedInChain = true;
       sfx('collapse');
       screenShake();
-      renderBoard(null, moved.map((m) => ({ r: m.r1, c: m.c1 })));
+      renderBoard(
+        null,
+        moved.map((m) => ({ r: m.r1, c: m.c1 })),
+        collapseDirection,
+      );
     } else {
       renderBoard(null, newPlaced);
     }
