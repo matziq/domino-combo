@@ -244,10 +244,10 @@ function updateModeDisplay() {
   if (!el) return;
   el.textContent =
     gameMode === 'chaos'
-      ? '\u{1F300} Chaos'
+      ? 'Chaos'
       : gameMode === 'ultra'
-        ? '\u{1F300} Ultra Chaos'
-        : '';
+        ? 'Ultimate Chaos'
+        : 'Classic';
 }
 
 function updateSoundControl() {
@@ -597,7 +597,7 @@ function processMatches() {
     }
   }
 
-  // Four or more sixes in Ultra Chaos charge for one second before exploding.
+  // Four or more sixes in Ultimate Chaos charge for one second before exploding.
   const explodingSixKeys = new Set(explodingSixCells.map(({ r, c }) => `${r},${c}`));
   allClear.forEach((k) => {
     const [r, c] = k.split(',').map(Number);
@@ -753,14 +753,39 @@ function submitHighScore() {
       highScore = score;
     }
   }
-  newGame();
+  restartGame();
 }
 
 // ── Controls ───────────────────────────────────────────────
-function newGame() {
+function restartGame() {
   document.getElementById('game-over').classList.remove('show');
   document.getElementById('settings-modal').classList.remove('show');
   document.getElementById('name-entry').style.display = 'none';
+  init();
+}
+
+function showModeSelect(options = {}) {
+  gameVersion++;
+  processing = true;
+  piece = null;
+  document.getElementById('game-over').classList.remove('show');
+  document.getElementById('settings-modal').classList.remove('show');
+  document.getElementById('help-modal').classList.remove('show');
+  document.getElementById('name-entry').style.display = 'none';
+  document.getElementById('board').innerHTML = '';
+  document.getElementById('piece-area').innerHTML = '';
+  document.getElementById('game').setAttribute('aria-hidden', 'true');
+  document.getElementById('mode-select').classList.add('show');
+  if (options.focus !== false) {
+    document.querySelector('.mode-card').focus();
+  }
+}
+
+function startMode(mode) {
+  if (!['classic', 'chaos', 'ultra'].includes(mode)) return;
+  gameMode = mode;
+  document.getElementById('mode-select').classList.remove('show');
+  document.getElementById('game').setAttribute('aria-hidden', 'false');
   init();
 }
 
@@ -773,7 +798,6 @@ function toggleSettings() {
   m.classList.toggle('show');
   document.getElementById('opt-size').value = String(gridSize);
   document.getElementById('opt-match').value = String(matchCount);
-  document.getElementById('opt-mode').value = gameMode;
   document.getElementById('opt-sound').value = soundOn ? '1' : '0';
 }
 
@@ -787,13 +811,10 @@ function toggleSound() {
 function applySettings() {
   const nextGridSize = parseInt(document.getElementById('opt-size').value, 10);
   const nextMatchCount = parseInt(document.getElementById('opt-match').value, 10);
-  const nextGameMode = document.getElementById('opt-mode').value;
-  const gameRulesChanged =
-    nextGridSize !== gridSize || nextMatchCount !== matchCount || nextGameMode !== gameMode;
+  const gameRulesChanged = nextGridSize !== gridSize || nextMatchCount !== matchCount;
 
   gridSize = nextGridSize;
   matchCount = nextMatchCount;
-  gameMode = nextGameMode;
   soundOn = document.getElementById('opt-sound').value === '1';
   document.getElementById('settings-modal').classList.remove('show');
   updateSoundControl();
@@ -835,7 +856,10 @@ function updateFullscreenControl() {
 
 // ── Event wiring (unobtrusive, replaces inline onclick) ────
 function wireControls() {
-  document.getElementById('btn-new-game').addEventListener('click', newGame);
+  document
+    .querySelectorAll('.mode-card')
+    .forEach((button) => button.addEventListener('click', () => startMode(button.dataset.mode)));
+  document.getElementById('btn-new-game').addEventListener('click', showModeSelect);
   document.getElementById('btn-sound').addEventListener('click', toggleSound);
   document.getElementById('btn-fullscreen').addEventListener('click', toggleFullscreen);
   document.getElementById('btn-help').addEventListener('click', toggleHelp);
@@ -858,4 +882,4 @@ function wireControls() {
 
 // ── Start ──────────────────────────────────────────────────
 wireControls();
-init();
+showModeSelect({ focus: false });

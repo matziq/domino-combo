@@ -3,12 +3,12 @@
 A match-3 dice placement game. Drag dominoes onto the board, match 3+ same tiles
 to merge them into the next value, and chain reactions for bonus points.
 
-Three game modes (Ultra Chaos is the default; pick another in **Settings**):
+Choose one of three game modes whenever the game launches:
 
 - **Classic** — merges resolve in place; no board-wide reshuffling.
 - **Chaos** — matching 4+ tiles starts a collapse; every chained match keeps
   collapsing the board until no matches remain.
-- **Ultra Chaos** — matching 4+ tiles valued 1-5 or 3+ sixes collapses the
+- **Ultimate Chaos** — matching 4+ tiles valued 1-5 or 3+ sixes collapses the
   board, while Hard mode still requires four of any value. Four or more sixes
   shake, explode every neighboring tile for its face value in bonus points,
   and then collapse the survivors.

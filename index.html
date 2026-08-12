@@ -3,8 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
@@ -14,7 +13,68 @@
     <link rel="icon" href="icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="icon.svg">
     <title>Domino Combo</title>
+    <script>
+        (() => {
+            const param = new URLSearchParams(window.location.search).get("scoutTheme");
+            const theme =
+                param || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+            document.documentElement.setAttribute("data-theme", theme);
+        })();
+    </script>
     <style>
+        :root {
+            color-scheme: light;
+            --cp-bg: #f7f4ef;
+            --cp-bg-elevated: #fcfbf8;
+            --cp-surface: #ffffff;
+            --cp-surface-soft: #f5f5f5;
+            --cp-border: #dedede;
+            --cp-border-strong: #919191;
+            --cp-text: #242424;
+            --cp-text-muted: #5c5c5c;
+            --cp-text-soft: #6f6f6f;
+            --cp-accent: #b11f4b;
+            --cp-accent-hover: #9a1a41;
+            --cp-accent-soft: rgba(177, 31, 75, 0.08);
+            --cp-accent-fg: #ffffff;
+            --cp-success: #16a34a;
+            --cp-danger: #dc2626;
+            --cp-warning: #f59e0b;
+            --cp-link: #0078d4;
+            --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
+            --cp-overlay: rgba(255, 255, 255, 0.8);
+            --cp-panel: rgba(255, 255, 255, 0.86);
+            --cp-panel-strong: rgba(255, 255, 255, 0.96);
+            --cp-sheen: rgba(255, 255, 255, 0.55);
+            --cp-highlight: rgba(177, 31, 75, 0.12);
+        }
+        html[data-theme="dark"] {
+            color-scheme: dark;
+            --cp-bg: #3d3b3a;
+            --cp-bg-elevated: #343231;
+            --cp-surface: #292929;
+            --cp-surface-soft: #2e2e2e;
+            --cp-border: #474747;
+            --cp-border-strong: #5f5f5f;
+            --cp-text: #dedede;
+            --cp-text-muted: #919191;
+            --cp-text-soft: #b0b0b0;
+            --cp-accent: #fd8ea1;
+            --cp-accent-hover: #fb7b91;
+            --cp-accent-soft: rgba(253, 142, 161, 0.14);
+            --cp-accent-fg: #1a1a1a;
+            --cp-success: #4ade80;
+            --cp-danger: #f87171;
+            --cp-warning: #fbbf24;
+            --cp-link: #4da6ff;
+            --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+            --cp-overlay: rgba(41, 41, 41, 0.88);
+            --cp-panel: rgba(41, 41, 41, 0.72);
+            --cp-panel-strong: rgba(41, 41, 41, 0.96);
+            --cp-sheen: rgba(255, 255, 255, 0.04);
+            --cp-highlight: rgba(253, 142, 161, 0.12);
+        }
+
         /* === Reset === */
         * {
             margin: 0;
@@ -57,7 +117,7 @@
             color: #29B6F6;
             text-align: center;
             margin: 8px 0 4px;
-            text-shadow: 0 0 25px rgba(41, 182, 246, 0.3);
+            text-shadow: none;
             letter-spacing: -2px;
             line-height: 1;
         }
@@ -331,22 +391,20 @@
             }
         }
 
-        @keyframes placeBounce {
+        @keyframes placeSettle {
             0% {
-                transform: scale(0.82);
-            }
-
-            55% {
-                transform: scale(1.1);
+                transform: scale(0.88);
+                opacity: 0.72;
             }
 
             100% {
                 transform: scale(1);
+                opacity: 1;
             }
         }
 
         .just-placed .die {
-            animation: placeBounce 0.22s ease-out;
+            animation: placeSettle 0.24s cubic-bezier(0.22, 1, 0.36, 1);
         }
 
         @keyframes mergeAppear {
@@ -691,7 +749,7 @@
             margin-bottom: 14px;
         }
 
-        @media (orientation: landscape) and (pointer: coarse) {
+        @media (orientation: landscape) and (pointer: coarse) and (max-height: 520px) {
             #rotate-overlay {
                 display: flex;
             }
@@ -701,6 +759,526 @@
             .six-charging .die {
                 animation: none;
                 filter: brightness(1.8);
+            }
+        }
+
+        /* === Refined game shell and launch experience === */
+        html,
+        body {
+            background: var(--cp-bg);
+            color: var(--cp-text);
+            font-family: "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background:
+                linear-gradient(90deg, transparent 49.8%, var(--cp-accent-soft) 50%, transparent 50.2%),
+                linear-gradient(0deg, transparent 49.8%, var(--cp-accent-soft) 50%, transparent 50.2%);
+            background-size: 48px 48px;
+            opacity: 0.34;
+        }
+
+        body {
+            touch-action: manipulation;
+        }
+
+        #game,
+        #current-piece {
+            touch-action: none;
+        }
+
+        #game {
+            max-width: 460px;
+            background: var(--cp-bg-elevated);
+            border-inline: 1px solid var(--cp-border);
+            box-shadow: var(--cp-shadow);
+            padding: calc(14px + env(safe-area-inset-top)) 16px calc(12px + env(safe-area-inset-bottom));
+        }
+
+        #game[aria-hidden="true"] {
+            visibility: hidden;
+        }
+
+        .game-wordmark {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            min-height: 24px;
+            margin-bottom: 4px;
+            color: var(--cp-text-muted);
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+        }
+
+        .game-wordmark::after {
+            content: '';
+            width: 32px;
+            height: 2px;
+            background: var(--cp-accent);
+        }
+
+        #score-display {
+            color: var(--cp-accent);
+            margin-top: 4px;
+            text-shadow: none;
+        }
+
+        #high-score,
+        #high-score-name,
+        #flip-hint {
+            color: var(--cp-text-muted) !important;
+        }
+
+        #mode-display {
+            color: var(--cp-accent) !important;
+            font-size: 12px !important;
+            letter-spacing: 0.04em;
+        }
+
+        #quick-controls {
+            min-height: 44px;
+            margin: 0 0 8px;
+        }
+
+        #quick-controls button {
+            min-width: 44px;
+            height: 44px;
+            color: var(--cp-accent);
+            background: var(--cp-surface);
+            border-color: var(--cp-border);
+        }
+
+        .sound-toggle {
+            padding: 0 12px;
+            font-size: 13px;
+        }
+
+        .sound-toggle[aria-checked="true"] .toggle-track {
+            background: var(--cp-accent);
+        }
+
+        #quick-controls button:focus-visible,
+        .game-btn:focus-visible,
+        .mode-card:focus-visible,
+        .overlay-btn:focus-visible,
+        .close-settings:focus-visible,
+        select:focus-visible,
+        input:focus-visible {
+            outline: 3px solid var(--cp-accent);
+            outline-offset: 3px;
+        }
+
+        .game-stage {
+            width: 100%;
+            padding: 10px;
+            background: var(--cp-surface);
+            border: 1px solid var(--cp-border);
+            border-radius: 16px;
+            box-shadow: 0 0 2px var(--cp-border), 0 1px 2px var(--cp-border);
+        }
+
+        #board {
+            border: 2px solid var(--cp-border-strong);
+            background: var(--cp-surface-soft);
+        }
+
+        .cell {
+            background: var(--cp-bg-elevated);
+            border-color: var(--cp-border);
+        }
+
+        .cell.hl-valid {
+            border-color: var(--cp-success);
+            background: var(--cp-accent-soft);
+        }
+
+        .cell.hl-invalid {
+            border-color: var(--cp-danger);
+            background: var(--cp-accent-soft);
+        }
+
+        .piece-dock {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            min-height: 102px;
+            margin-top: 8px;
+            padding: 8px 12px;
+            background: var(--cp-surface-soft);
+            border: 1px solid var(--cp-border);
+            border-radius: 0.625rem;
+        }
+
+        .piece-dock-label {
+            align-self: start;
+            padding-top: 8px;
+            color: var(--cp-text-muted);
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+        }
+
+        #piece-area {
+            min-height: 72px;
+            margin: 0;
+        }
+
+        #flip-hint {
+            grid-column: 2;
+            margin: -6px 0 0;
+        }
+
+        #buttons {
+            gap: 8px;
+            padding: 14px 2px max(4px, env(safe-area-inset-bottom, 4px));
+        }
+
+        .game-btn {
+            flex: 1;
+            min-height: 68px;
+            justify-content: center;
+            gap: 4px;
+            color: var(--cp-text-muted);
+            border-radius: 0.625rem;
+        }
+
+        .game-btn:active {
+            background: var(--cp-accent-soft);
+        }
+
+        .btn-circle {
+            width: 42px;
+            height: 42px;
+            font-size: 23px;
+        }
+
+        .new-game-btn .btn-circle {
+            background: var(--cp-accent);
+            color: var(--cp-accent-fg);
+        }
+
+        .settings-btn .btn-circle {
+            color: var(--cp-accent);
+            border-color: var(--cp-accent);
+        }
+
+        .overlay {
+            background: var(--cp-overlay);
+            color: var(--cp-text);
+            padding: 20px;
+            backdrop-filter: blur(8px);
+        }
+
+        .settings-content {
+            background: var(--cp-surface);
+            border-color: var(--cp-border);
+            box-shadow: var(--cp-shadow);
+        }
+
+        .settings-content h2 {
+            color: var(--cp-accent);
+        }
+
+        .setting-row {
+            border-color: var(--cp-border);
+        }
+
+        .setting-row select {
+            min-height: 44px;
+            color: var(--cp-text);
+            background: var(--cp-bg-elevated);
+            border-color: var(--cp-border-strong);
+        }
+
+        .overlay-btn,
+        .close-settings {
+            min-height: 48px;
+            background: var(--cp-accent);
+            color: var(--cp-accent-fg);
+        }
+
+        #game-over h1 {
+            color: var(--cp-danger);
+        }
+
+        .final-score-label,
+        .final-score,
+        .hs-label {
+            color: var(--cp-text-muted);
+        }
+
+        .final-score {
+            color: var(--cp-accent);
+        }
+
+        .launch-screen {
+            overflow-y: auto;
+            padding: max(24px, env(safe-area-inset-top)) 18px max(24px, env(safe-area-inset-bottom));
+            background: var(--cp-bg);
+            backdrop-filter: none;
+        }
+
+        .launch-panel {
+            width: min(100%, 430px);
+            margin: auto;
+            padding: 28px 20px 20px;
+            background: var(--cp-bg-elevated);
+            border: 1px solid var(--cp-border);
+            border-radius: 16px;
+            box-shadow: var(--cp-shadow);
+        }
+
+        .launch-kicker {
+            color: var(--cp-accent);
+            font-size: 11px;
+            font-weight: 900;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+        }
+
+        .launch-title {
+            margin-top: 8px;
+            font-size: clamp(38px, 12vw, 58px);
+            font-weight: 900;
+            font-style: italic;
+            letter-spacing: -0.05em;
+            line-height: 0.92;
+        }
+
+        .launch-intro {
+            max-width: 32ch;
+            margin: 14px 0 24px;
+            color: var(--cp-text-muted);
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        .mode-list {
+            display: grid;
+            gap: 10px;
+        }
+
+        .mode-card {
+            display: grid;
+            grid-template-columns: 40px 1fr auto;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            min-height: 82px;
+            padding: 12px;
+            color: var(--cp-text);
+            text-align: left;
+            background: var(--cp-surface);
+            border: 1px solid var(--cp-border);
+            border-radius: 0.625rem;
+            cursor: pointer;
+            transition: transform 160ms ease-out, border-color 160ms ease-out, background 160ms ease-out;
+        }
+
+        .mode-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--cp-accent);
+            background: var(--cp-accent-soft);
+        }
+
+        .mode-number {
+            color: var(--cp-accent);
+            font-family: Consolas, "Courier New", Courier, monospace;
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .mode-copy {
+            display: grid;
+            gap: 3px;
+        }
+
+        .mode-name {
+            font-size: 17px;
+            font-weight: 800;
+        }
+
+        .mode-description {
+            color: var(--cp-text-muted);
+            font-size: 12px;
+            line-height: 1.35;
+        }
+
+        .mode-arrow {
+            color: var(--cp-accent);
+            font-size: 24px;
+        }
+
+        .launch-note {
+            margin-top: 16px;
+            color: var(--cp-text-muted);
+            font-size: 11px;
+            line-height: 1.4;
+            text-align: center;
+        }
+
+        @media (max-width: 520px) {
+            body::before {
+                display: none;
+            }
+
+            @media (max-width: 520px) and (max-height: 740px) {
+                #game {
+                    padding-block: calc(6px + env(safe-area-inset-top)) calc(4px + env(safe-area-inset-bottom));
+                }
+
+                .game-wordmark {
+                    min-height: 18px;
+                    margin: 0;
+                }
+
+                #score-display {
+                    font-size: 38px;
+                    margin: 0;
+                }
+
+                #high-score {
+                    margin-bottom: 2px;
+                }
+
+                #quick-controls {
+                    min-height: 40px;
+                    margin-bottom: 4px;
+                }
+
+                #quick-controls button {
+                    min-width: 40px;
+                    height: 40px;
+                }
+
+                .game-stage {
+                    padding: 6px;
+                }
+
+                .piece-dock {
+                    min-height: 74px;
+                    padding-block: 2px;
+                }
+
+                #piece-area {
+                    min-height: 52px;
+                }
+
+                .piece-die {
+                    width: 48px;
+                    height: 48px;
+                }
+
+                #buttons {
+                    padding-top: 4px;
+                }
+
+                .game-btn {
+                    min-height: 58px;
+                    font-size: 12px;
+                }
+
+                .btn-circle {
+                    width: 36px;
+                    height: 36px;
+                    font-size: 20px;
+                }
+            }
+
+            #game {
+                max-width: none;
+                border: 0;
+                box-shadow: none;
+            }
+
+            .launch-panel {
+                padding-inline: 16px;
+                box-shadow: none;
+            }
+        }
+
+        @media (min-width: 760px) {
+            #game {
+                height: min(940px, calc(100% - 40px));
+                margin-block: 20px;
+                border: 1px solid var(--cp-border);
+                border-radius: 16px;
+            }
+        }
+
+        @media (min-width: 521px) and (max-height: 820px) {
+            #game {
+                max-width: 390px;
+                padding-block: 10px;
+            }
+
+            .game-wordmark {
+                min-height: 18px;
+                margin: 0;
+            }
+
+            #score-display {
+                font-size: 42px;
+                margin: 0;
+            }
+
+            #high-score {
+                margin-bottom: 2px;
+            }
+
+            #quick-controls {
+                margin-bottom: 4px;
+            }
+
+            .game-stage {
+                padding: 6px;
+            }
+
+            .piece-dock {
+                min-height: 78px;
+                padding-block: 2px;
+            }
+
+            #piece-area {
+                min-height: 56px;
+            }
+
+            .piece-die {
+                width: 48px;
+                height: 48px;
+            }
+
+            #buttons {
+                padding-top: 4px;
+            }
+
+            .game-btn {
+                min-height: 58px;
+            }
+
+            .btn-circle {
+                width: 36px;
+                height: 36px;
+                font-size: 20px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                scroll-behavior: auto !important;
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
             }
         }
     </style>
@@ -713,7 +1291,45 @@
         <div>Please rotate your device back to portrait to play.</div>
     </div>
 
-    <div id="game">
+    <div id="mode-select" class="overlay launch-screen show" role="dialog" aria-modal="true"
+        aria-labelledby="launch-title">
+        <div class="launch-panel">
+            <div class="launch-kicker">A domino puzzle</div>
+            <h1 class="launch-title" id="launch-title">Domino<br>Combo</h1>
+            <p class="launch-intro">Choose your rules. Every mode starts with the same simple move and builds toward a
+                different kind of chain reaction.</p>
+            <div class="mode-list" aria-label="Choose a game mode">
+                <button class="mode-card" type="button" data-mode="classic">
+                    <span class="mode-number">01</span>
+                    <span class="mode-copy">
+                        <span class="mode-name">Classic</span>
+                        <span class="mode-description">Pure placement. Matches resolve exactly where you build them.</span>
+                    </span>
+                    <span class="mode-arrow" aria-hidden="true">&rarr;</span>
+                </button>
+                <button class="mode-card" type="button" data-mode="chaos">
+                    <span class="mode-number">02</span>
+                    <span class="mode-copy">
+                        <span class="mode-name">Chaos</span>
+                        <span class="mode-description">Big matches collapse the board and trigger falling combos.</span>
+                    </span>
+                    <span class="mode-arrow" aria-hidden="true">&rarr;</span>
+                </button>
+                <button class="mode-card" type="button" data-mode="ultra">
+                    <span class="mode-number">03</span>
+                    <span class="mode-copy">
+                        <span class="mode-name">Ultimate Chaos</span>
+                        <span class="mode-description">Explosive sixes, relentless collapses, maximum chain potential.</span>
+                    </span>
+                    <span class="mode-arrow" aria-hidden="true">&rarr;</span>
+                </button>
+            </div>
+            <p class="launch-note">You can change board size and difficulty from Settings once the game starts.</p>
+        </div>
+    </div>
+
+    <div id="game" aria-hidden="true">
+        <div class="game-wordmark"><span>Domino Combo</span></div>
         <div id="score-display">0</div>
         <div id="high-score">Best: 0</div>
         <div id="high-score-name" style="font-size:11px;color:#666;margin-bottom:4px;"></div>
@@ -727,9 +1343,14 @@
             <button class="quick-control-btn" id="btn-fullscreen" type="button" aria-label="Enter full screen"
                 title="Enter full screen">&#9974;</button>
         </div>
-        <div id="board"></div>
-        <div id="piece-area"></div>
-        <div id="flip-hint"></div>
+        <div class="game-stage">
+            <div id="board"></div>
+            <div class="piece-dock">
+                <div class="piece-dock-label">Next move</div>
+                <div id="piece-area"></div>
+                <div id="flip-hint"></div>
+            </div>
+        </div>
         <div id="buttons">
             <button class="game-btn new-game-btn" id="btn-new-game">
                 <div class="btn-circle">+</div>
@@ -773,7 +1394,7 @@
                 <p style="margin-bottom:10px;">Red <b style="color:#EF5350;">6s</b> vanish when matched.</p>
                 <p style="margin-bottom:10px;"><b style="color:#FF8A65;">Chaos mode:</b> a match of 4+ starts a
                     collapse, then every chained match keeps the board collapsing until no matches remain.</p>
-                <p style="margin-bottom:10px;"><b style="color:#FF3D00;">Ultra Chaos:</b> 4+ matching tiles or
+                <p style="margin-bottom:10px;"><b style="color:#FF3D00;">Ultimate Chaos:</b> 4+ matching tiles or
                     3+ sixes collapse the board (4+ of either on Hard). Match 4+ sixes to destroy and score every
                     neighboring tile before the collapse.</p>
                 <p style="margin-bottom:0;">Game ends when no moves remain.</p>
@@ -799,14 +1420,6 @@
                     <option value="2">2 (Easy)</option>
                     <option value="3" selected>3 (Normal)</option>
                     <option value="4">4 (Hard)</option>
-                </select>
-            </div>
-            <div class="setting-row">
-                <span>Game Mode</span>
-                <select id="opt-mode">
-                    <option value="classic">Classic</option>
-                    <option value="chaos">Chaos</option>
-                    <option value="ultra" selected>Ultra Chaos</option>
                 </select>
             </div>
             <div class="setting-row">
