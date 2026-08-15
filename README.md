@@ -41,7 +41,25 @@ test/             Vitest suites (pure logic + jsdom bootstrap smoke tests)
 | ----------------- | ----------------------------------------------------- |
 | `npm run dev`     | Start the Vite dev server                             |
 | `npm run build`   | Build a single self-contained `dist/index.html`       |
+| `npm run android:sync` | Build the web app and copy it into the Android project |
+| `npm run android:build:debug` | Build an installable debug APK on Windows       |
+| `npm run android:open` | Open the native project in Android Studio            |
 | `npm run preview` | Preview the production build                          |
 | `npm test`        | Run the Vitest suite once                             |
 | `npm run test:watch` | Run Vitest in watch mode                            |
 | `npm run lint`    | Lint with ESLint (flat config)                        |
+
+## Android APK
+
+The Capacitor project in `android/` packages the same production web build used
+by GitHub Pages. On Windows, set `JAVA_HOME` to Android Studio's bundled JDK and
+`ANDROID_HOME` to the Android SDK, then run:
+
+```powershell
+$env:JAVA_HOME = 'C:\Program Files\Android\Android Studio\jbr'
+$env:ANDROID_HOME = 'D:\DevTools\android-sdk'
+npm run android:build:debug
+```
+
+The installable APK is written to
+`android/app/build/outputs/apk/debug/app-debug.apk`.
