@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Domino Combo</string>
+    <string name="title_activity_main">Domino Combo</string>
+    <string name="package_name">com.dominocombo.app</string>
+    <string name="custom_url_scheme">com.dominocombo.app</string>
+</resources>

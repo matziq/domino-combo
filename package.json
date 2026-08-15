@@ -7,12 +7,18 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "android:sync": "npm run build && cap sync android",
+    "android:build:debug": "npm run android:sync && android\\gradlew.bat -p android assembleDebug",
+    "android:open": "cap open android",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint ."
   },
   "devDependencies": {
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/cli": "^8.5.0",
+    "@capacitor/core": "^8.5.0",
     "@eslint/js": "^9.39.0",
     "@vitest/coverage-v8": "^3.2.4",
     "eslint": "^9.39.0",
