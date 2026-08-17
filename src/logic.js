@@ -27,12 +27,64 @@ export function createBoard(gridSize) {
   return Array.from({ length: gridSize }, () => Array(gridSize).fill(null));
 }
 
+// Difficulty controls which pieces spawn, independently of the game mode.
+//   regular   – mostly two-value dominoes (the original behavior)
+//   easy      – single dice only, locked to the 5×5 / match-3 beginner board
+//   noob      – single dice only, but board size and match count stay free
+//   snakeeyes – always twin doubles (the same value on both halves)
+export const DIFFICULTIES = ['regular', 'easy', 'noob', 'snakeeyes'];
+export const DEFAULT_DIFFICULTY = 'regular';
+
+export const DIFFICULTY_LABELS = {
+  regular: 'Regular',
+  easy: 'Easy',
+  noob: 'Noob',
+  snakeeyes: 'Snake Eyes',
+};
+
+// Easy pins the board to the beginner preset so its high scores stay comparable.
+export const EASY_GRID_SIZE = 5;
+export const EASY_MATCH_COUNT = 3;
+
+// Chance of spawning a two-value domino on Regular difficulty.
+export const DOUBLE_SPAWN_CHANCE = 6 / 7;
+
+export function normalizeDifficulty(difficulty) {
+  return DIFFICULTIES.includes(difficulty) ? difficulty : DEFAULT_DIFFICULTY;
+}
+
+// Easy is the only difficulty that locks the board controls.
+export function locksBoardOptions(difficulty) {
+  return normalizeDifficulty(difficulty) === 'easy';
+}
+
+// Which piece shape spawns next. 'twin' is a double whose halves share a
+// value; 'double' is a double with two different values.
+export function spawnTypeForDifficulty(difficulty, canFitDouble, maxSpawnVal, roll) {
+  switch (normalizeDifficulty(difficulty)) {
+    case 'snakeeyes':
+      return canFitDouble ? 'twin' : 'single';
+    case 'easy':
+    case 'noob':
+      return 'single';
+    default:
+      return canFitDouble && maxSpawnVal >= 2 && roll < DOUBLE_SPAWN_CHANCE
+        ? 'double'
+        : 'single';
+  }
+}
+
 // Key used to store per-config high scores. `mode` defaults to the
-// original 'classic' format so previously-saved scores keep working.
-export function hsKey(gridSize, matchCount, mode = 'classic') {
-  return mode === 'classic'
-    ? `${gridSize}_${matchCount}`
-    : `${gridSize}_${matchCount}_${mode}`;
+// original 'classic' format and `difficulty` to 'regular' so
+// previously-saved scores keep working.
+export function hsKey(gridSize, matchCount, mode = 'classic', difficulty = DEFAULT_DIFFICULTY) {
+  const base =
+    mode === 'classic'
+      ? `${gridSize}_${matchCount}`
+      : `${gridSize}_${matchCount}_${mode}`;
+  return normalizeDifficulty(difficulty) === DEFAULT_DIFFICULTY
+    ? base
+    : `${base}_${normalizeDifficulty(difficulty)}`;
 }
 
 // Chaos mode: a matched group of this size or larger triggers a full-board

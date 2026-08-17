@@ -92,6 +92,70 @@ describe('game bootstrap (jsdom)', () => {
     expect(document.getElementById('btn-sound').getAttribute('aria-checked')).toBe('false');
   });
 
+  it('locks the board options when Easy is selected', async () => {
+    await start();
+    document.getElementById('opt-size').value = '7';
+    document.getElementById('opt-match').value = '4';
+    const difficultySelect = document.getElementById('opt-difficulty');
+    difficultySelect.value = 'easy';
+    difficultySelect.dispatchEvent(new Event('change'));
+
+    expect(document.getElementById('opt-size').disabled).toBe(true);
+    expect(document.getElementById('opt-match').disabled).toBe(true);
+    expect(document.getElementById('opt-size').value).toBe('5');
+    expect(document.getElementById('opt-match').value).toBe('3');
+
+    document.getElementById('btn-apply-settings').click();
+    expect(document.querySelectorAll('#board .cell')).toHaveLength(25);
+  });
+
+  it('keeps the board options free on Noob', async () => {
+    await start();
+    const difficultySelect = document.getElementById('opt-difficulty');
+    difficultySelect.value = 'noob';
+    difficultySelect.dispatchEvent(new Event('change'));
+
+    expect(document.getElementById('opt-size').disabled).toBe(false);
+    expect(document.getElementById('opt-match').disabled).toBe(false);
+
+    document.getElementById('opt-size').value = '7';
+    document.getElementById('btn-apply-settings').click();
+    expect(document.querySelectorAll('#board .cell')).toHaveLength(49);
+    expect(document.getElementById('mode-display').textContent).toContain('Noob');
+  });
+
+  it('spawns single dice on Noob and twin doubles on Snake Eyes', async () => {
+    await start();
+
+    document.getElementById('opt-difficulty').value = 'noob';
+    document.getElementById('btn-apply-settings').click();
+    expect(document.querySelectorAll('#current-piece .piece-die')).toHaveLength(1);
+
+    document.getElementById('opt-difficulty').value = 'snakeeyes';
+    document.getElementById('btn-apply-settings').click();
+    const dice = document.querySelectorAll('#current-piece .piece-die');
+    expect(dice).toHaveLength(2);
+    expect(dice[0].style.background).toBe(dice[1].style.background);
+    expect(document.getElementById('mode-display').textContent).toContain('Snake Eyes');
+  });
+
+  it('keeps high scores separate per difficulty', async () => {
+    await start();
+    localStorage.setItem(
+      'dcHighScores',
+      JSON.stringify({ '5_3_ultra': { score: 900, name: 'AAA' } }),
+    );
+    vi.resetModules();
+    document.body.innerHTML = bodyInner;
+    await start();
+
+    expect(document.getElementById('high-score').textContent).toContain('900');
+
+    document.getElementById('opt-difficulty').value = 'noob';
+    document.getElementById('btn-apply-settings').click();
+    expect(document.getElementById('high-score').textContent).toContain('0');
+  });
+
   it('requests full screen only from the dedicated button', async () => {
     const requestFullscreen = vi.fn().mockResolvedValue();
     Object.defineProperty(document.documentElement, 'requestFullscreen', {

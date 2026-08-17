@@ -12,6 +12,15 @@ Choose one of three game modes whenever the game launches:
 - **Ultimate Chaos** — uses the same thresholds and explosions as Chaos, but
   matching 4+ sixes reverses gravity and makes every survivor fall upward.
 
+Difficulty is separate from the game mode and is changed in **Settings**. It
+controls which pieces spawn, and each difficulty keeps its own high scores:
+
+- **Regular** — mostly two-value dominoes (the original behavior).
+- **Easy** — single dice only, locked to the 5×5 board with match 3.
+- **Noob** — single dice only, but board size and match count stay adjustable.
+- **Snake Eyes** — always twin doubles (the same value on both halves), falling
+  back to a single die when no double fits on the board.
+
 ## Play
 
 - **Quick play:** run `npm run build` and open `dist/index.html` — it's a single,

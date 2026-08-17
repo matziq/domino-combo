@@ -1437,6 +1437,15 @@
         <div class="settings-content">
             <h2>&#9881; Settings</h2>
             <div class="setting-row">
+                <span>Difficulty</span>
+                <select id="opt-difficulty">
+                    <option value="regular" selected>Regular</option>
+                    <option value="easy">Easy</option>
+                    <option value="noob">Noob</option>
+                    <option value="snakeeyes">Snake Eyes</option>
+                </select>
+            </div>
+            <div class="setting-row" id="row-size">
                 <span>Board Size</span>
                 <select id="opt-size">
                     <option value="5" selected>5 &times; 5 (Normal)</option>
@@ -1444,7 +1453,7 @@
                     <option value="7">7 &times; 7</option>
                 </select>
             </div>
-            <div class="setting-row">
+            <div class="setting-row" id="row-match">
                 <span>Match Needed</span>
                 <select id="opt-match">
                     <option value="2">2 (Easy)</option>
