@@ -74,9 +74,8 @@ export function spawnTypeForDifficulty(difficulty, canFitDouble, maxSpawnVal, ro
   }
 }
 
-// Key used to store per-config high scores. `mode` defaults to the
-// standard 'ultra' format and `difficulty` to 'regular' so
-// previously-saved scores keep working.
+// Key used to store per-config high scores. `mode` defaults to
+// 'classic' and `difficulty` to 'regular' so previously-saved scores keep working.
 export function hsKey(gridSize, matchCount, mode = 'classic', difficulty = DEFAULT_DIFFICULTY) {
   const base =
     !mode || mode === 'classic'
