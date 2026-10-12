@@ -12,13 +12,13 @@ import {
   visualVals,
   findGroups,
   pickMergeTarget,
-  triggersCollapse,
-  triggersChaosCollapse,
-  shouldCollapseForMode,
-  collapseDirectionForMode,
+  shouldCollapse,
+  randomCollapseDirection,
+  earnsRemixToken,
+  scrambleBoard,
+  COLLAPSE_DIRECTIONS,
   explosionTargets,
   collapseColumns,
-  CHAOS_MATCH_THRESHOLD,
   computeScore,
   sanitizeName,
   randVal,
@@ -346,82 +346,75 @@ describe('pickMergeTarget', () => {
   });
 });
 
-describe('triggersCollapse', () => {
+describe('triggersCollapse & shouldCollapse', () => {
   it('returns false when no group reaches the threshold', () => {
     const groups = [{ val: 1, cells: [{ r: 0, c: 0 }, { r: 0, c: 1 }, { r: 0, c: 2 }] }];
-    expect(triggersCollapse(groups)).toBe(false);
+    expect(shouldCollapse(groups, false)).toBe(false);
   });
 
-  it('returns true when a group has CHAOS_MATCH_THRESHOLD or more cells', () => {
-    const cells = Array.from({ length: CHAOS_MATCH_THRESHOLD }, (_, i) => ({ r: 0, c: i }));
-    const groups = [{ val: 1, cells }];
-    expect(triggersCollapse(groups)).toBe(true);
+  it('collapses on 4+ matches during standard turn', () => {
+    const fourMatch = [{ val: 2, cells: [{}, {}, {}, {}] }];
+    expect(shouldCollapse(fourMatch, false)).toBe(true);
   });
 
-  it('respects a custom threshold', () => {
-    const groups = [{ val: 1, cells: [{ r: 0, c: 0 }, { r: 0, c: 1 }] }];
-    expect(triggersCollapse(groups, 2)).toBe(true);
-    expect(triggersCollapse(groups, 3)).toBe(false);
-  });
-});
-
-describe('triggersChaosCollapse', () => {
-  it('collapses for four tiles valued 1-5 but not three', () => {
-    expect(triggersChaosCollapse([{ val: 4, cells: [{}, {}, {}, {}] }])).toBe(true);
-    expect(triggersChaosCollapse([{ val: 4, cells: [{}, {}, {}] }])).toBe(false);
+  it('collapses on 3+ matches during a collapse cascade', () => {
+    const threeMatch = [{ val: 3, cells: [{}, {}, {}] }];
+    expect(shouldCollapse(threeMatch, false)).toBe(false);
+    expect(shouldCollapse(threeMatch, true)).toBe(true);
   });
 
-  describe('shouldCollapseForMode', () => {
-    const threeFours = [{ val: 4, cells: [{}, {}, {}] }];
-    const fourFours = [{ val: 4, cells: [{}, {}, {}, {}] }];
-    const threeSixes = [{ val: 6, cells: [{}, {}, {}] }];
-
-    it('gives Chaos the former Ultimate collapse thresholds', () => {
-      expect(shouldCollapseForMode('chaos', threeFours, 3)).toBe(false);
-      expect(shouldCollapseForMode('chaos', fourFours, 3)).toBe(true);
-      expect(shouldCollapseForMode('chaos', threeSixes, 3)).toBe(true);
-    });
-
-    it('uses the same explicit thresholds for Ultimate Chaos', () => {
-      expect(shouldCollapseForMode('ultra', threeFours, 3)).toBe(false);
-      expect(shouldCollapseForMode('ultra', fourFours, 3)).toBe(true);
-      expect(shouldCollapseForMode('ultra', threeSixes, 3)).toBe(true);
-      expect(shouldCollapseForMode('ultra', threeSixes, 4)).toBe(false);
-    });
-
-    it('never collapses Classic mode', () => {
-      expect(shouldCollapseForMode('classic', fourFours, 3)).toBe(false);
-    });
-  });
-
-  it('collapses for three sixes', () => {
-    expect(triggersChaosCollapse([{ val: 6, cells: [{}, {}, {}] }])).toBe(true);
-  });
-
-  it('requires four sixes when the configured match requirement is four', () => {
-    const threeSixes = [{ val: 6, cells: [{}, {}, {}] }];
-    const fourSixes = [{ val: 6, cells: [{}, {}, {}, {}] }];
-    expect(triggersChaosCollapse(threeSixes, 4)).toBe(false);
-    expect(triggersChaosCollapse(fourSixes, 4)).toBe(true);
+  it('respects higher configured matchCount requirements', () => {
+    const fourMatch = [{ val: 4, cells: [{}, {}, {}, {}] }];
+    expect(shouldCollapse(fourMatch, false, 5)).toBe(false);
+    expect(shouldCollapse([{ val: 4, cells: [{}, {}, {}, {}, {}] }], false, 5)).toBe(true);
   });
 });
 
-describe('collapseDirectionForMode', () => {
-  const fourSixes = [{ val: 6, cells: [{}, {}, {}, {}] }];
-  const threeSixes = [{ val: 6, cells: [{}, {}, {}] }];
-  const fourFives = [{ val: 5, cells: [{}, {}, {}, {}] }];
+describe('randomCollapseDirection', () => {
+  it('picks from all four directions using RNG', () => {
+    expect(COLLAPSE_DIRECTIONS).toEqual(['up', 'down', 'left', 'right']);
+    expect(randomCollapseDirection(() => 0.0)).toBe('up');
+    expect(randomCollapseDirection(() => 0.26)).toBe('down');
+    expect(randomCollapseDirection(() => 0.51)).toBe('left');
+    expect(randomCollapseDirection(() => 0.76)).toBe('right');
+  });
+});
 
-  it('always collapses downward in Chaos', () => {
-    expect(collapseDirectionForMode('chaos', fourSixes)).toBe('down');
+describe('earnsRemixToken', () => {
+  it('awards a token for match 5 or higher', () => {
+    expect(earnsRemixToken([{ val: 1, cells: [{}, {}, {}, {}] }])).toBe(0);
+    expect(earnsRemixToken([{ val: 1, cells: [{}, {}, {}, {}, {}] }])).toBe(1);
+    expect(earnsRemixToken([{ val: 1, cells: [{}, {}, {}, {}, {}, {}] }])).toBe(1);
+    expect(earnsRemixToken([
+      { val: 1, cells: [{}, {}, {}, {}, {}] },
+      { val: 2, cells: [{}, {}, {}, {}, {}] },
+    ])).toBe(2);
+  });
+});
+
+describe('scrambleBoard', () => {
+  it('preserves the set of tile values and empty spaces', () => {
+    const board = createBoard(4);
+    board[0][0] = 1;
+    board[1][1] = 2;
+    board[2][2] = 3;
+    board[3][3] = 4;
+
+    const scrambled = scrambleBoard(board, 4);
+    const originalValues = [1, 2, 3, 4];
+    const scrambledValues = scrambled.flat().filter((v) => v !== null).sort((a, b) => a - b);
+    expect(scrambledValues).toEqual(originalValues);
+    expect(scrambled.flat().filter((v) => v === null)).toHaveLength(12);
   });
 
-  it('collapses downward for ordinary Ultimate matches and three sixes', () => {
-    expect(collapseDirectionForMode('ultra', fourFives)).toBe('down');
-    expect(collapseDirectionForMode('ultra', threeSixes)).toBe('down');
-  });
-
-  it('collapses upward for four or more sixes in Ultimate Chaos', () => {
-    expect(collapseDirectionForMode('ultra', fourSixes)).toBe('up');
+  it('scrambles tiles according to injected rng', () => {
+    const board = createBoard(2);
+    board[0][0] = 5;
+    board[0][1] = 6;
+    // deterministic shuffle
+    const scrambled = scrambleBoard(board, 2, () => 0.5);
+    const nonNullCount = scrambled.flat().filter((v) => v !== null).length;
+    expect(nonNullCount).toBe(2);
   });
 });
 
@@ -483,6 +476,34 @@ describe('collapseColumns', () => {
     expect(moved).toEqual([
       { r0: 1, c0: 0, r1: 0, c1: 0, val: 1 },
       { r0: 2, c0: 0, r1: 1, c1: 0, val: 2 },
+    ]);
+  });
+
+  it('slides tiles to the left when gravity points left', () => {
+    const board = createBoard(3);
+    board[0][1] = 1;
+    board[0][2] = 2;
+    const { board: out, moved } = collapseColumns(board, 3, 'left');
+    expect(out[0][0]).toBe(1);
+    expect(out[0][1]).toBe(2);
+    expect(out[0][2]).toBeNull();
+    expect(moved).toEqual([
+      { r0: 0, c0: 1, r1: 0, c1: 0, val: 1 },
+      { r0: 0, c0: 2, r1: 0, c1: 1, val: 2 },
+    ]);
+  });
+
+  it('slides tiles to the right when gravity points right', () => {
+    const board = createBoard(3);
+    board[0][0] = 1;
+    board[0][1] = 2;
+    const { board: out, moved } = collapseColumns(board, 3, 'right');
+    expect(out[0][0]).toBeNull();
+    expect(out[0][1]).toBe(1);
+    expect(out[0][2]).toBe(2);
+    expect(moved).toEqual([
+      { r0: 0, c0: 0, r1: 0, c1: 1, val: 1 },
+      { r0: 0, c0: 1, r1: 0, c1: 2, val: 2 },
     ]);
   });
 
