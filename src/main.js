@@ -848,6 +848,8 @@ function submitHighScore() {
 
 // ── Controls ───────────────────────────────────────────────
 function restartGame() {
+  gameVersion++;
+  piece = null;
   document.getElementById('game-over').classList.remove('show');
   document.getElementById('settings-modal').classList.remove('show');
   document.getElementById('help-modal').classList.remove('show');
