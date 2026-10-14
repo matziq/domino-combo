@@ -223,6 +223,8 @@ function triggerRemix() {
   if (remixTokens <= 0 || processing) return;
   remixTokens--;
   processing = true;
+  piece = null;
+  renderPiece();
   updateRemixButton();
   sfx('flip');
   board = scrambleBoard(board, gridSize);
