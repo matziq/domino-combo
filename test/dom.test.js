@@ -156,6 +156,21 @@ describe('game bootstrap (jsdom)', () => {
     expect(document.getElementById('high-score').textContent).toContain('0');
   });
 
+  it('submits the high-score name when Enter is pressed', async () => {
+    await start();
+    const nameEntry = document.getElementById('name-entry');
+    const nameInput = document.getElementById('hs-name');
+    nameEntry.style.display = 'block';
+    nameInput.value = 'PLAYER';
+
+    const enter = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true });
+    nameInput.dispatchEvent(enter);
+
+    expect(enter.defaultPrevented).toBe(true);
+    expect(nameEntry.style.display).toBe('none');
+    expect(document.querySelectorAll('#board .cell')).toHaveLength(25);
+  });
+
   it('requests full screen only from the dedicated button', async () => {
     const requestFullscreen = vi.fn().mockResolvedValue();
     Object.defineProperty(document.documentElement, 'requestFullscreen', {
