@@ -223,6 +223,8 @@ function triggerRemix() {
   if (remixTokens <= 0 || processing) return;
   remixTokens--;
   processing = true;
+  piece = null;
+  renderPiece();
   updateRemixButton();
   sfx('flip');
   board = scrambleBoard(board, gridSize);
@@ -978,6 +980,15 @@ function wireControls() {
   if (optDifficulty) optDifficulty.addEventListener('change', onDifficultyChange);
   const btnPlayAgain = document.getElementById('btn-play-again');
   if (btnPlayAgain) btnPlayAgain.addEventListener('click', submitHighScore);
+  const nameInput = document.getElementById('hs-name');
+  if (nameInput) {
+    nameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        submitHighScore();
+      }
+    });
+  }
   document.addEventListener('fullscreenchange', updateFullscreenControl);
   updateFullscreenControl();
 
