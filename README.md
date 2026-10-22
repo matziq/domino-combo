@@ -3,23 +3,12 @@
 A match-3 dice placement game. Drag dominoes onto the board, match 3+ same tiles
 to merge them into the next value, and chain reactions for bonus points.
 
-Choose one of three game modes whenever the game launches:
-
-- **Classic** — merges resolve in place; no board-wide reshuffling.
-- **Chaos** — matching 4+ tiles valued 1-5 or 3+ sixes collapses the board
-  downward, while Hard mode still requires four of any value. Four or more
-  sixes explode every neighboring tile for bonus points before the collapse.
-- **Ultimate Chaos** — uses the same thresholds and explosions as Chaos, but
-  matching 4+ sixes reverses gravity and makes every survivor fall upward.
-
-Difficulty is separate from the game mode and is changed in **Settings**. It
-controls which pieces spawn, and each difficulty keeps its own high scores:
-
-- **Regular** — mostly two-value dominoes (the original behavior).
-- **Easy** — single dice only, locked to the 5×5 board with match 3.
-- **Noob** — single dice only, but board size and match count stay adjustable.
-- **Snake Eyes** — always twin doubles (the same value on both halves), falling
-  back to a single die when no double fits on the board.
+The game uses one ruleset on a fixed 5×5 board with the original piece mix.
+Matching 4+ tiles collapses the board in a random direction. During a collapse
+cascade, a match of 3+ causes another collapse. Matching 5+ earns a Remix Token,
+and matching 4+ sixes destroys neighboring tiles. Settings retain the match
+threshold and sound controls, but gameplay type, difficulty, and board size are
+fixed.
 
 ## Play
 
