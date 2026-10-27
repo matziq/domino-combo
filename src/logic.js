@@ -48,7 +48,7 @@ export function hsKey(matchCount) {
 // Matching 5 or more earns a remix token to scramble the board.
 export const COLLAPSE_MATCH_THRESHOLD = 4;
 export const CASCADE_COLLAPSE_MATCH_THRESHOLD = 3;
-export const SIX_EXPLOSION_THRESHOLD = 4;
+export const SIX_EXPLOSION_THRESHOLD = 3;
 export const REMIX_TOKEN_THRESHOLD = 5;
 export const COLLAPSE_DIRECTIONS = ['up', 'down', 'left', 'right'];
 
@@ -249,15 +249,21 @@ export function triggersChaosCollapse(groups, matchCount = 3, isCascadeFromColla
   return shouldCollapse(groups, isCascadeFromCollapse, matchCount);
 }
 
-// Find every occupied cell touching an exploding group, including diagonals.
+// Find every occupied cell within an exploding group's radius, including diagonals.
 // Overlapping blast areas only destroy and score a tile once.
-export function explosionTargets(board, gridSize, sourceCells, excludedCells = sourceCells) {
+export function explosionTargets(
+  board,
+  gridSize,
+  sourceCells,
+  excludedCells = sourceCells,
+  radius = 1,
+) {
   const excluded = new Set(excludedCells.map(({ r, c }) => `${r},${c}`));
   const targets = new Map();
 
   for (const { r, c } of sourceCells) {
-    for (let dr = -1; dr <= 1; dr++) {
-      for (let dc = -1; dc <= 1; dc++) {
+    for (let dr = -radius; dr <= radius; dr++) {
+      for (let dc = -radius; dc <= radius; dc++) {
         if (dr === 0 && dc === 0) continue;
         const nr = r + dr;
         const nc = c + dc;
@@ -277,6 +283,11 @@ export function explosionTargets(board, gridSize, sourceCells, excludedCells = s
   }
 
   return [...targets.values()];
+}
+
+export function sixExplosionRadius(matchSize, gridSize) {
+  if (matchSize >= REMIX_TOKEN_THRESHOLD) return gridSize;
+  return matchSize > SIX_EXPLOSION_THRESHOLD ? 2 : 1;
 }
 
 // Apply gravity across rows or columns in any of the four directions ('up', 'down', 'left', 'right').
