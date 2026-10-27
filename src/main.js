@@ -21,6 +21,7 @@ import {
   explosionTargets,
   collapseColumns,
   SIX_EXPLOSION_THRESHOLD,
+  sixExplosionRadius,
   computeScore,
   sanitizeName,
   randVal,
@@ -595,6 +596,7 @@ function processMatches(isCascadeFromCollapse = false) {
   const allClear = new Set(); // cells to animate clearing
   const mergeResults = []; // {r, c, newVal} for upgrades
   const explodingSixCells = [];
+  const explodingSixGroups = [];
 
   for (const grp of groups) {
     grp.cells.forEach(({ r, c }) => {
@@ -614,22 +616,28 @@ function processMatches(isCascadeFromCollapse = false) {
       grp.val === 6 &&
       grp.cells.length >= SIX_EXPLOSION_THRESHOLD
     ) {
+      explodingSixGroups.push(grp);
       explodingSixCells.push(...grp.cells);
     }
   }
 
-  const blastTargets =
-    explodingSixCells.length > 0
-      ? explosionTargets(
-          board,
-          gridSize,
-          explodingSixCells,
-          [...allClear].map((key) => {
-            const [r, c] = key.split(',').map(Number);
-            return { r, c };
-          }),
-        )
-      : [];
+  const excludedCells = [...allClear].map((key) => {
+    const [r, c] = key.split(',').map(Number);
+    return { r, c };
+  });
+  const blastTargetMap = new Map();
+  for (const grp of explodingSixGroups) {
+    for (const target of explosionTargets(
+      board,
+      gridSize,
+      grp.cells,
+      excludedCells,
+      sixExplosionRadius(grp.cells.length, gridSize),
+    )) {
+      blastTargetMap.set(`${target.r},${target.c}`, target);
+    }
+  }
+  const blastTargets = [...blastTargetMap.values()];
 
   score += totalPts;
   if (score > highScore) {
@@ -653,7 +661,7 @@ function processMatches(isCascadeFromCollapse = false) {
     }
   }
 
-  // Four or more sixes in either Chaos mode charge before exploding.
+  // Exploding sixes charge before the blast.
   const explodingSixKeys = new Set(explodingSixCells.map(({ r, c }) => `${r},${c}`));
   allClear.forEach((k) => {
     const [r, c] = k.split(',').map(Number);
