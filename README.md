@@ -30,8 +30,8 @@ resolution step. New Game and game over clear the active run. Storage errors
 are shown in the game; private browsing, cleared site data, and Android app
 data removal can prevent or erase saves. Browser and app saves are separate.
 
-The Music button cycles through four original synthesized loops: Funky, Pop,
-Dance, and 8-bit Arcade, plus Off. The selection is saved locally. Audio starts
+The Music button cycles through five original synthesized loops: Funky, Pop,
+Dance, 8-bit Retro, and Arcade, plus Off. The selection is saved locally. Audio starts
 only after a gesture and stops when the app is backgrounded; interact with the
 game to resume it. Music is independent of the sound-effects switch.
 The sixes blast briefly punches the board toward the viewer; reduced-motion
