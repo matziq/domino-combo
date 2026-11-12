@@ -22,7 +22,8 @@ built `dist/index.html`.
 
 Sound can be toggled without restarting from the switch above the board.
 Full-screen mode is never automatic; use the adjacent full-screen button when
-you want it.
+you want it. The game adapts to portrait and short landscape windows, retaining
+space for device safe areas; very short windows can be scrolled.
 
 Your active run saves locally after each move and resumes after a browser reload
 or Android app restart. An interrupted chain resumes from its last complete
