@@ -6,9 +6,10 @@ to merge them into the next value, and chain reactions for bonus points.
 The game uses one ruleset on a fixed 5×5 board with the original piece mix.
 Matching 4+ tiles collapses the board in a random direction. During a collapse
 cascade, a match of 3+ causes another collapse. Matching 5+ earns a Remix Token,
-and matching 4+ sixes destroys neighboring tiles. Settings retain the match
-threshold and sound controls, but gameplay type, difficulty, and board size are
-fixed.
+and matching 3 sixes explodes neighboring tiles. A match of 4 sixes expands the
+blast to two spaces, while 5+ sixes explode the playfield. Settings retain the
+match threshold and sound controls, but gameplay type, difficulty, and board size
+are fixed.
 
 ## Play
 

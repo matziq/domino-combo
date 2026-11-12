@@ -17,6 +17,9 @@ import {
   earnsRemixToken,
   scrambleBoard,
   COLLAPSE_DIRECTIONS,
+  SIX_EXPLOSION_THRESHOLD,
+  REMIX_TOKEN_THRESHOLD,
+  sixExplosionRadius,
   explosionTargets,
   collapseColumns,
   computeScore,
@@ -365,6 +368,26 @@ describe('explosionTargets', () => {
     const targets = explosionTargets(board, 3, sources, excluded);
     expect(targets).toHaveLength(6);
     expect(new Set(targets.map(({ r, c }) => `${r},${c}`)).size).toBe(6);
+  });
+
+  it('uses the six-match thresholds and supports a two-cell radius', () => {
+    expect(SIX_EXPLOSION_THRESHOLD).toBe(3);
+    expect(REMIX_TOKEN_THRESHOLD).toBe(5);
+    expect(sixExplosionRadius(3, 5)).toBe(1);
+    expect(sixExplosionRadius(4, 5)).toBe(2);
+    expect(sixExplosionRadius(5, 5)).toBe(5);
+
+    const board = Array.from({ length: 5 }, () => Array(5).fill(1));
+    const targets = explosionTargets(board, 5, [{ r: 2, c: 2 }], [], 2);
+    expect(targets).toHaveLength(24);
+    expect(targets.some(({ r, c }) => r === 0 && c === 2)).toBe(true);
+    expect(targets.some(({ r, c }) => r === 0 && c === 0)).toBe(true);
+  });
+
+  it('can target every occupied cell on the playfield', () => {
+    const board = Array.from({ length: 5 }, () => Array(5).fill(1));
+    const targets = explosionTargets(board, 5, [{ r: 2, c: 2 }], [], 5);
+    expect(targets).toHaveLength(24);
   });
 });
 
